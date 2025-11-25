@@ -1,0 +1,170 @@
+package org.game.invaders
+
+import org.lwjgl.BufferUtils
+import org.lwjgl.openal.AL
+import org.lwjgl.openal.AL10
+import org.lwjgl.openal.ALC
+import org.lwjgl.openal.ALC10
+import java.nio.IntBuffer
+
+import java.nio.ShortBuffer
+
+class RetroSynth(
+    sourceCount: Int = 16   // Number of simultaneous sounds allowed
+) {
+    private var device: Long = 0L
+    private var context: Long = 0L
+
+    private val sources = IntArray(sourceCount)
+    private val buffersInUse = mutableListOf<Int>()
+
+    init {
+        val defaultDeviceName = ALC10.alcGetString(0, ALC10.ALC_DEFAULT_DEVICE_SPECIFIER)
+        device = ALC10.alcOpenDevice(defaultDeviceName)
+
+        val deviceCaps = ALC.createCapabilities(device)
+
+        context = ALC10.alcCreateContext(device, null as IntBuffer?)
+        ALC10.alcMakeContextCurrent(context)
+
+        AL.createCapabilities(deviceCaps)
+
+        // Create a pool of reusable sources
+        for (i in 0 until sourceCount) {
+            sources[i] = AL10.alGenSources()
+        }
+    }
+
+    // ------------------------------
+    // Cleanup
+    // ------------------------------
+    fun cleanup() {
+        // Delete all buffers still hanging around
+        for (b in buffersInUse) {
+            AL10.alDeleteBuffers(b)
+        }
+
+        // Delete sources
+        for (s in sources) {
+            AL10.alDeleteSources(s)
+        }
+
+        ALC10.alcDestroyContext(context)
+        ALC10.alcCloseDevice(device)
+    }
+
+    // ------------------------------
+    // Utility: find a free source
+    // ------------------------------
+    private fun acquireSource(): Int {
+        // First reclaim any finished sources and delete their buffers
+        reclaimFinishedSources()
+
+        for (s in sources) {
+            val state = AL10.alGetSourcei(s, AL10.AL_SOURCE_STATE)
+            if (state != AL10.AL_PLAYING) {
+                // Make sure previous buffer is unhooked
+                AL10.alSourcei(s, AL10.AL_BUFFER, 0)
+                return s
+            }
+        }
+
+        // No free source → just stop the first one
+        val s = sources[0]
+        AL10.alSourceStop(s)
+        AL10.alSourcei(s, AL10.AL_BUFFER, 0)
+        return s
+    }
+
+    private fun reclaimFinishedSources() {
+        val iterator = buffersInUse.iterator()
+        while (iterator.hasNext()) {
+            val buf = iterator.next()
+
+            // OpenAL does NOT provide direct "is buffer still used",
+            // but we can check all sources.
+            var stillUsed = false
+
+            for (s in sources) {
+                val bound = AL10.alGetSourcei(s, AL10.AL_BUFFER)
+                if (bound == buf) {
+                    val state = AL10.alGetSourcei(s, AL10.AL_SOURCE_STATE)
+                    if (state == AL10.AL_PLAYING) stillUsed = true
+                }
+            }
+
+            if (!stillUsed) {
+                AL10.alDeleteBuffers(buf)
+                iterator.remove()
+            }
+        }
+    }
+
+    // ------------------------------
+    // Play helper
+    // ------------------------------
+    private fun playBuffer(buffer: Int) {
+        val source = acquireSource()
+        AL10.alSourcei(source, AL10.AL_BUFFER, buffer)
+        AL10.alSourcePlay(source)
+
+        buffersInUse.add(buffer)
+    }
+
+    // ------------------------------
+    // Square Wave Beep
+    // ------------------------------
+    fun playSquareBeep(freq: Float, durationMs: Int) {
+        val sampleRate = 44100
+        val samples = (sampleRate * (durationMs / 1000f)).toInt()
+        val buffer = AL10.alGenBuffers()
+
+        val data: ShortBuffer = BufferUtils.createShortBuffer(samples)
+
+        var phase = 0f
+        val step = freq / sampleRate
+
+        for (i in 0 until samples) {
+            val value = if (phase < 0.5f) 12000 else -12000
+            val env = 1f - (i / samples.toFloat())
+            data.put((value * env).toInt().toShort())
+            phase = (phase + step) % 1f
+        }
+
+        data.flip()
+        AL10.alBufferData(buffer, AL10.AL_FORMAT_MONO16, data, sampleRate)
+
+        playBuffer(buffer)
+    }
+
+    // ------------------------------
+    // Atari/NES style noise burst
+    // ------------------------------
+    fun playNoiseBurst(durationMs: Int) {
+        val sampleRate = 44100
+        val samples = (sampleRate * (durationMs / 1000f)).toInt()
+        val buffer = AL10.alGenBuffers()
+
+        val data = BufferUtils.createShortBuffer(samples)
+
+        var lfsr = 0xACE1 // seed
+        for (i in 0 until samples) {
+            val bit = ((lfsr shr 0) xor (lfsr shr 2) xor (lfsr shr 3) xor (lfsr shr 5)) and 1
+            lfsr = (lfsr shr 1) or (bit shl 15)
+
+            // random noise bit → audio sample
+            var sample = if ((lfsr and 1) == 1) 12000 else -12000
+
+            // fade-out
+            val env = 1f - (i / samples.toFloat())
+            sample = (sample * env).toInt()
+
+            data.put(sample.toShort())
+        }
+
+        data.flip()
+        AL10.alBufferData(buffer, AL10.AL_FORMAT_MONO16, data, sampleRate)
+
+        playBuffer(buffer)
+    }
+}
