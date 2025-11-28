@@ -24,15 +24,14 @@ object Constants {
     const val PADDLE_COLOR_G: Float = 0.816f
     const val PADDLE_COLOR_B: Float = 0.314f
 
-    const val BALL_COLOR_R: Float = 0.0f
-    const val BALL_COLOR_G: Float = 0.25f
-    const val BALL_COLOR_B: Float = 1.00f
+    const val MISSILE_COLOR_R: Float = 0.2f
+    const val MISSILE_COLOR_G: Float = 0.2f
+    const val MISSILE_COLOR_B: Float = 0.2f
 
     // Paddle Size Ratios
-    const val NORMAL_PADDLE_RATIO: Float = 0.15f   // 15% of window width
-    const val SMALL_PADDLE_RATIO: Float = 0.075f    // 7.5% of window width
-    const val PADDLE_HEIGHT_RATIO = 0.03f     // 2% of window height
-    const val PADDLE_MARGIN = 100f              // Margin from bottom of window in pixels
+    const val NORMAL_PLAYER_RATIO: Float = 0.15f   // 15% of window width
+    const val SMALL_PLAYER_RATIO: Float = 0.075f    // 7.5% of window width
+    const val PLAYER_HEIGHT_RATIO = 0.07f     // 2% of window height
 
     // Frame Size Rations
     const val TOP_FRAME_RATIO = 0.030f // 3.0 % of window height
@@ -40,16 +39,17 @@ object Constants {
     const val BOTTOM_FRAME_RATIO = 0.10f // 10 % of window height
 
     // Brick Size Ratio
-    const val BRICK_HEIGHT_RATIO = PADDLE_HEIGHT_RATIO
-    const val BRICK_WIDTH_RATIO = 2 * SIDE_FRAME_RATIO // A brick is twice as wide as a side-frame
-    const val BRICK_MARGIN_RATIO = 0.15f // In local space
-    const val BRICK_COLUMN_COUNT = 9 // 9 * 0.10 = 0.90 = 1 - 2 * 0.05
-    const val BRICK_ROW_COUNT = 8 // Standard break number of rows
-    const val BRICK_START_RATIO = 0.55f
+    const val ENEMY_HEIGHT_RATIO = PLAYER_HEIGHT_RATIO
+    const val ENEMY_WIDTH_RATIO = 2 * SIDE_FRAME_RATIO // A brick is twice as wide as a side-frame
+    const val ENEMY_MARGIN_RATIO = 0.15f // In local space
+    const val ENEMY_COLUMN_COUNT = 6 // 9 * 0.10 = 0.90 = 1 - 2 * 0.05
+    const val ENEMY_ROW_COUNT = 6 // Standard break number of rows
+    const val ENEMY_START_RATIO = 0.35f
 
-    // Ball Constants
+    // Missile Constants
     const val BALL_START_RATIO = 0.50f
-    const val BALL_HEIGHT_RATIO = 0.03f
+    const val MISSILE_HEIGHT_RATIO = 0.06f
+    const val MISSILE_WIDTH_RATIO = 0.01f
 
     // Shader Resource Paths
     const val HUD_VERTEX_SHADER_PATH = "/shaders/hud_vertex.glsl"
@@ -58,8 +58,8 @@ object Constants {
     const val FRAME_FRAGMENT_SHADER_PATH = "/shaders/frame_fragment.glsl"
     const val PADDLE_VERTEX_SHADER_PATH = "/shaders/player_vertex.glsl"
     const val PADDLE_FRAGMENT_SHADER_PATH = "/shaders/player_fragment.glsl"
-    const val BALL_VERTEX_SHADER_PATH = "/shaders/ball_vertex.glsl"
-    const val BALL_FRAGMENT_SHADER_PATH = "/shaders/ball_fragment.glsl"
-    const val BRICK_VERTEX_SHADER_PATH = "/shaders/brick_vertex.glsl"
-    const val BRICK_FRAGMENT_SHADER_PATH = "/shaders/brick_fragment.glsl"
+    const val MISSILE_VERTEX_SHADER_PATH = "/shaders/missile_vertex.glsl"
+    const val MISSILE_FRAGMENT_SHADER_PATH = "/shaders/missile_fragment.glsl"
+    const val ENEMY_VERTEX_SHADER_PATH = "/shaders/enemy_vertex.glsl"
+    const val ENEMY_FRAGMENT_SHADER_PATH = "/shaders/enemy_fragment.glsl"
 }

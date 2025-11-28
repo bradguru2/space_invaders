@@ -22,7 +22,13 @@ abstract class ShaderProgram(private val vertexSource: String, private val fragm
         GL30.glDeleteShader(vertexId)
         GL30.glDeleteShader(fragmentId)
     }
+
     fun use() = GL30.glUseProgram(programId)
+
+    fun setUniformInt(name: String, newValue: Int) {
+        val location = GL30.glGetUniformLocation(programId, name)
+        GL30.glUniform1i(location, newValue)
+    }
 
     fun setUniformFloat(name: String, newValue: Float) {
         val location = GL30.glGetUniformLocation(programId, name)

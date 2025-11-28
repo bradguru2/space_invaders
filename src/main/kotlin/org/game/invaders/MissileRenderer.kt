@@ -1,6 +1,7 @@
 package org.game.invaders
 
 import org.joml.Matrix4f
+import org.joml.Random
 import org.lwjgl.opengl.GL30
 import kotlin.math.roundToInt
 
@@ -13,8 +14,11 @@ class MissileRenderer(
 
     private lateinit var quad: Quad
 
-    var ballSize = (windowHeight * Constants.BALL_HEIGHT_RATIO).roundToInt()
+    var missileHeight = (windowHeight * Constants.MISSILE_HEIGHT_RATIO).roundToInt()
         private set
+    var missileWidth = (windowWidth * Constants.MISSILE_WIDTH_RATIO).roundToInt()
+
+    private val random = Random(System.currentTimeMillis())
 
     init {
         updateWindowSize(windowWidth, windowHeight)
@@ -32,19 +36,21 @@ class MissileRenderer(
         shader.rebuild()
         windowWidth = w
         windowHeight = h
-        ballSize = (windowHeight * Constants.BALL_HEIGHT_RATIO).roundToInt()
+        missileHeight = (windowHeight * Constants.MISSILE_HEIGHT_RATIO).roundToInt()
+        missileWidth = (windowWidth * Constants.MISSILE_WIDTH_RATIO).roundToInt()
         buildGeometry()
     }
 
     private fun buildGeometry() {
-        val s = ballSize.toFloat()
+        val h = missileHeight.toFloat()
+        val w = missileWidth.toFloat()
         val vertices = floatArrayOf(
             0f, 0f,
-            s, 0f,
-            s, s,
-            s, s,
-            0f, s,
-            0f, 0f
+            w, 0f,
+            w, h,
+            w, h,
+            0f, h,
+            0f, 0f,
         )
 
         val vao = GL30.glGenVertexArrays()
@@ -62,17 +68,23 @@ class MissileRenderer(
         quad = Quad(vao, vbo)
     }
 
-    fun render(ballX: Float, ballY: Float) {
+    fun render(missileX: Float, missileY: Float) {
         shader.use()
-        val diameter = ballSize.toFloat()
+        val height = missileHeight.toFloat()
+        val width = missileWidth.toFloat()
 
         val proj = Matrix4f().ortho2D(0f, windowWidth.toFloat(), 0f, windowHeight.toFloat())
             .get(FloatArray(16))
-
+        val nextFloat = random.nextFloat() * 0.5f // Intensity < 0.51f
         shader.setUniformMat4("uProjection", proj)
-        shader.setUniformVec2("uBallPos", ballX, ballY)
-        shader.setUniformVec2("uBallSize", diameter, diameter)
-        shader.setUniformVec3("uColor", Constants.BALL_COLOR_R, Constants.BALL_COLOR_G, Constants.BALL_COLOR_B)
+        shader.setUniformVec2("uBallPos", missileX, missileY)
+        shader.setUniformVec2("uBallSize", width, height)
+        shader.setUniformVec3(
+            "uColor",
+            Constants.MISSILE_COLOR_R + nextFloat,
+            Constants.MISSILE_COLOR_G + nextFloat,
+            Constants.MISSILE_COLOR_B + nextFloat,
+        )
 
         GL30.glBindVertexArray(quad.vao)
         GL30.glDrawArrays(GL30.GL_TRIANGLES, 0, 6)
