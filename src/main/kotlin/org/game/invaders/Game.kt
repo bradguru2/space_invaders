@@ -42,7 +42,7 @@ class Game {
             monitor = MemoryUtil.NULL
         }
 
-        window = glfwCreateWindow(localWidth, localHeight, "Breakout Clone", monitor, MemoryUtil.NULL)
+        window = glfwCreateWindow(localWidth, localHeight, "Space Invaders Clone", monitor, MemoryUtil.NULL)
 
         if (!fullscreen) {
             // restore windowed mode

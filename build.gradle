@@ -1,8 +1,10 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.2.10'
+    id 'application'
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
-group = 'org.example'
+group = 'org.game'
 version = '1.0-SNAPSHOT'
 
 repositories {
@@ -20,6 +22,11 @@ dependencies {
     implementation "org.lwjgl.lwjgl:lwjgl_util:2.9.3"
     implementation "org.lwjgl:lwjgl-openal"
 
+    implementation "com.googlecode.soundlibs:mp3spi:1.9.5-1"
+    implementation "com.googlecode.soundlibs:tritonus-share:0.3.7-2"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2"
+
     runtimeOnly "org.lwjgl:lwjgl::natives-linux"
     runtimeOnly "org.lwjgl:lwjgl-glfw::natives-linux"
     runtimeOnly "org.lwjgl:lwjgl-opengl::natives-linux"
@@ -33,4 +40,20 @@ test {
 }
 kotlin {
     jvmToolchain(17)
+}
+
+application {
+    mainClass = 'org.game.invaders.GameKt' // adjust to your main
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': application.mainClass
+    }
+    // Optionally:
+    // duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.shadowJar {
+    manifest { attributes["Main-Class"] = application.mainClass.get() }
 }

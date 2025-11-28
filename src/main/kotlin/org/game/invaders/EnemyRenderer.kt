@@ -6,17 +6,17 @@ import kotlin.math.roundToInt
 
 class EnemyRenderer(private val shader: EnemyShader, private var windowWidth: Int, private var windowHeight:Int) {
     private data class Quad(val vao: Int, val vbo: Int, var vertexCount: Int)
-    private lateinit var brick: Quad
+    private lateinit var enemy: Quad
 
-    private var brickHeight = (windowHeight * Constants.PADDLE_HEIGHT_RATIO).roundToInt()
-    private var brickWidth = (windowWidth * Constants.BRICK_WIDTH_RATIO).roundToInt()
+    private var enemyHeight = (windowHeight * Constants.PLAYER_HEIGHT_RATIO).roundToInt()
+    private var enemyWidth = (windowWidth * Constants.ENEMY_WIDTH_RATIO).roundToInt()
 
     init {
         buildGeometry() // Initial paddle position at roughly center
     }
 
     fun cleanup() {
-        listOf(brick).forEach { quad ->
+        listOf(enemy).forEach { quad ->
             GL30.glDeleteVertexArrays(quad.vao)
             GL30.glDeleteBuffers(quad.vbo)
         }
@@ -27,25 +27,25 @@ class EnemyRenderer(private val shader: EnemyShader, private var windowWidth: In
         shader.rebuild()
         windowWidth = w
         windowHeight = h
-        brickHeight = (h * Constants.PADDLE_HEIGHT_RATIO).roundToInt()
-        brickWidth = (w * Constants.BRICK_WIDTH_RATIO).roundToInt()
+        enemyHeight = (h * Constants.PLAYER_HEIGHT_RATIO).roundToInt()
+        enemyWidth = (w * Constants.ENEMY_WIDTH_RATIO).roundToInt()
         buildGeometry()
     }
 
-    fun render(brickX: Int, brickY: Int, rgbColor: Triple<Float, Float, Float>) {
+    fun render(enemyX: Int, enemyY: Int, rgbColor: Triple<Float, Float, Float>) {
         shader.use()
 
         // Projection for Window Coordinates
         val proj =
             Matrix4f().ortho2D(0f, windowWidth.toFloat(), 0f, windowHeight.toFloat()).get(FloatArray(16))
-        shader.setUniformVec2("uBrickPos", brickX.toFloat(), brickY.toFloat()) // Y flipped
+        shader.setUniformVec2("uEnemyPos", enemyX.toFloat(), enemyY.toFloat()) // Y flipped
         shader.setUniformMat4("uProjection", proj)
         shader.setUniformVec3("uColor", rgbColor.first, rgbColor.second, rgbColor.third)
-        shader.setUniformVec2("uSize", brickWidth.toFloat(), brickHeight.toFloat())
-        shader.setUniformFloat("bottomMargin", Constants.BRICK_MARGIN_RATIO)
+        shader.setUniformVec2("uSize", enemyWidth.toFloat(), enemyHeight.toFloat())
+        shader.setUniformFloat("bottomMargin", Constants.ENEMY_MARGIN_RATIO)
 
         // Draw paddle
-        GL30.glBindVertexArray(brick.vao)
+        GL30.glBindVertexArray(enemy.vao)
         GL30.glDrawArrays(GL30.GL_TRIANGLES, 0, 6)
 
         GL30.glBindVertexArray(0)
@@ -85,6 +85,6 @@ class EnemyRenderer(private val shader: EnemyShader, private var windowWidth: In
     }
 
     private fun buildGeometry() {
-        brick = buildQuad(brickWidth + 0.0f, brickHeight + 0.0f)
+        enemy = buildQuad(enemyWidth + 0.0f, enemyHeight + 0.0f)
     }
 }

@@ -1,24 +1,27 @@
 package org.game.invaders
 
+import org.game.invaders.utilities.loadTextureFromResource
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL30
 
 class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: Int, private var windowHeight: Int) {
     private data class Quad(val vao: Int, val vbo: Int, var vertexCount: Int)
-    private lateinit var paddle: Quad
+    private lateinit var player: Quad
+    private var normalTexture: Int
 
-    var paddleHeight = windowHeight * Constants.PADDLE_HEIGHT_RATIO
+    var playerHeight = windowHeight * Constants.PLAYER_HEIGHT_RATIO
         private set
-    var paddleState = Constants.NORMAL_PADDLE_RATIO
+    var paddleState = Constants.NORMAL_PLAYER_RATIO
         private set
     private var playerWidth = windowWidth * paddleState
 
     init {
         buildGeometry() // Initial paddle position at roughly center
+        normalTexture = loadTextureFromResource("/images/player.png")
     }
 
     fun cleanup() {
-        listOf(paddle).forEach { quad ->
+        listOf(player).forEach { quad ->
             GL30.glDeleteVertexArrays(quad.vao)
             GL30.glDeleteBuffers(quad.vbo)
         }
@@ -40,22 +43,29 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
         shader.rebuild()
         windowWidth = w
         windowHeight = h
-        paddleHeight = windowHeight * Constants.PADDLE_HEIGHT_RATIO
+        playerHeight = windowHeight * Constants.PLAYER_HEIGHT_RATIO
         playerWidth = windowWidth * s
         buildGeometry()
+        normalTexture = loadTextureFromResource("/images/player.png")
     }
 
-    fun render(paddleX: Int) {
+    fun render(playerX: Int) {
         shader.use()
         // Projection for Window Coordinates
         val proj =
             Matrix4f().ortho2D(0f, windowWidth.toFloat(), 0f, windowHeight.toFloat()).get(FloatArray(16))
-        shader.setUniformVec2("uPaddlePos", paddleX.toFloat(), Constants.BOTTOM_FRAME_RATIO * windowHeight)
+
+        // Set uniform parameters for shader
+        shader.setUniformVec2("uPlayerPos", playerX.toFloat(), Constants.BOTTOM_FRAME_RATIO * windowHeight)
         shader.setUniformMat4("uProjection", proj)
         shader.setUniformVec3("uColor", Constants.PADDLE_COLOR_R, Constants.PADDLE_COLOR_G, Constants.PADDLE_COLOR_B)
+        shader.setUniformVec2("uSize", playerWidth, playerHeight)
+        shader.setUniformInt("uTex", 0) // sampler uses texture unit 0
 
-        // Draw paddle
-        GL30.glBindVertexArray(paddle.vao)
+        // Draw player
+        GL30.glBindVertexArray(player.vao)
+        GL30.glActiveTexture(GL30.GL_TEXTURE0)
+        GL30.glBindTexture(GL30.GL_TEXTURE_2D, normalTexture)
         GL30.glDrawArrays(GL30.GL_TRIANGLES, 0, 6)
 
         GL30.glBindVertexArray(0)
@@ -95,6 +105,6 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
     }
 
     private fun buildGeometry() {
-        paddle = buildQuad(playerWidth, paddleHeight)
+        player = buildQuad(playerWidth, playerHeight)
     }
 }

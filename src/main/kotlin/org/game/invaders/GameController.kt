@@ -1,5 +1,10 @@
 package org.game.invaders
 
+/** TODO need shared ALC DC import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.runBlocking
+import org.game.invaders.utilities.MusicUtilities **/
 import org.lwjgl.glfw.GLFW.GLFW_KEY_A
 import org.lwjgl.glfw.GLFW.GLFW_KEY_D
 import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
@@ -12,14 +17,13 @@ import org.lwjgl.glfw.GLFW.glfwSwapBuffers
 import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
 import org.lwjgl.opengl.GL11.glClear
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class GameController(window: Long, width:Int, height:Int) {
     // Track bricks
     data class Brick (
-        var brickX: Int,
-        var brickY: Int,
+        var enemyX: Int,
+        var enemyY: Int,
         var isActive: Boolean,
         var brickColor: Triple<Float, Float, Float>,
         val renderer: EnemyRenderer,
@@ -37,12 +41,12 @@ class GameController(window: Long, width:Int, height:Int) {
 
     private var playerRenderer = PlayerRenderer(PlayerShader(), width, height)
     private val missileRenderer = MissileRenderer(MissilelShader(), width, height)
-    private val bricks = mutableListOf<Brick>() // assign BrickShader per brick
+    private val enemies = mutableListOf<Brick>() // assign BrickShader per brick
     private val retroSynth = RetroSynth()
     private var hudRenderer = HudRenderer(RetroFont(), HudShader(), width, height)
     private var frameRenderer = FrameRenderer(FrameShader(), width, height)
     private var score = 0
-    private var balls = 3
+    private var missiles = 3
     private var isLevelEvent = true
     private var level = 0
     private var gameWindow = window
@@ -50,12 +54,12 @@ class GameController(window: Long, width:Int, height:Int) {
     private var windowHeight = height
     private var gameOver = false
     private var playerX = windowWidth / 2
-    private var brickCount = Constants.BRICK_COLUMN_COUNT * Constants.BRICK_ROW_COUNT
+    private var enemyCount = Constants.ENEMY_COLUMN_COUNT * Constants.ENEMY_ROW_COUNT
     private var brickColorIndex = -1
-    private var brickWidth = (windowWidth * Constants.BRICK_WIDTH_RATIO).roundToInt()
+    private var enemyWidth = (windowWidth * Constants.ENEMY_WIDTH_RATIO).roundToInt()
     private var frameWidth = (windowWidth * Constants.SIDE_FRAME_RATIO).roundToInt()
     private var divideLineWidth = (windowWidth * Constants.DIVIDE_LINE_RATIO).roundToInt()
-    private var brickHeight = (windowHeight * Constants.BRICK_HEIGHT_RATIO).roundToInt()
+    private var enemyHeight = (windowHeight * Constants.ENEMY_HEIGHT_RATIO).roundToInt()
     private var ballX = 0
     private var ballY = 0
     private var lastTime = System.currentTimeMillis()
@@ -63,13 +67,14 @@ class GameController(window: Long, width:Int, height:Int) {
     private var playerSpeed = 600f  // pixels per second
     private var isBallReleased = true
     private var ballDX = 0f
-    private var ballDY = 0f
+    private var missileDY = 0f
     private var ballSpeedUV = 0.5f
     private var isMoveLeft: Boolean = false
     private var isMoveRight: Boolean = false
     private var isSpaceKey: Boolean = false
 
     fun execute() {
+        // TODO need shared ALC DC val job = MusicUtilities.playAsync (CoroutineScope(Dispatchers.IO),"/some.mp3")
         while (!glfwWindowShouldClose(gameWindow) && !gameOver) {
             deltaTime = computeDeltaTime()
             if (isLevelEvent) {
@@ -85,6 +90,8 @@ class GameController(window: Long, width:Int, height:Int) {
             glfwPollEvents()
         }
         cleanup()
+        // TODO need shared ALC DC MusicUtilities.stopPlayback()
+        // TODO need shared ALC DC runBlocking { job.cancelAndJoin() } // Wait for cleanup
     }
 
     fun onResizeWindow(newWindow: Long,newWidth: Int, newHeight: Int) {
@@ -95,22 +102,22 @@ class GameController(window: Long, width:Int, height:Int) {
         windowHeight = newHeight
 
         // Update state as needed
-        brickWidth = (windowWidth * Constants.BRICK_WIDTH_RATIO).roundToInt()
+        enemyWidth = (windowWidth * Constants.ENEMY_WIDTH_RATIO).roundToInt()
         frameWidth = (windowWidth * Constants.SIDE_FRAME_RATIO).roundToInt()
-        brickHeight = (windowHeight * Constants.BRICK_HEIGHT_RATIO).roundToInt()
+        enemyHeight = (windowHeight * Constants.ENEMY_HEIGHT_RATIO).roundToInt()
         divideLineWidth = (windowWidth * Constants.DIVIDE_LINE_RATIO).roundToInt()
 
-        for (brick in bricks) {
+        for (brick in enemies) {
             brick.renderer.updateWindowSize(windowWidth, windowHeight)
-            brick.brickX = (brick.brickX * scaleX).roundToInt()
-            brick.brickY = (brick.brickY * scaleY).roundToInt()
+            brick.enemyX = (brick.enemyX * scaleX).roundToInt()
+            brick.enemyY = (brick.enemyY * scaleY).roundToInt()
         }
 
         missileRenderer.updateWindowSize(windowWidth, windowHeight)
         ballX = (ballX * scaleX).roundToInt()
         ballY = (ballY * scaleY).roundToInt()
         ballDX *= scaleX
-        ballDY *= scaleY
+        missileDY *= scaleY
 
         playerX = (playerX * scaleX).roundToInt()
         hudRenderer.updateWindowSize(windowWidth, windowHeight)
@@ -120,11 +127,11 @@ class GameController(window: Long, width:Int, height:Int) {
 
     private fun initLevel() {
         // Create bricks, set positions, assign shaders
-        brickCount = Constants.BRICK_COLUMN_COUNT * Constants.BRICK_ROW_COUNT
+        enemyCount = Constants.ENEMY_COLUMN_COUNT * Constants.ENEMY_ROW_COUNT
         playerX = ((windowWidth - playerRenderer.playerSize()) / 2).roundToInt()
         if(++brickColorIndex>4) brickColorIndex = 0
         rebuildBricks() // Unnecessary but works
-        initBall()
+        initMissile()
     }
 
     private fun computeDeltaTime(): Float {
@@ -160,35 +167,26 @@ class GameController(window: Long, width:Int, height:Int) {
                 ay + ah > by
     }
 
-    fun ballHitsLeftWall(ballX: Float, frameLeftX: Float): Boolean =
-        ballX <= frameLeftX
-
-    fun ballHitsRightWall(ballX: Float, ballSize: Float, frameRightX: Float): Boolean =
-        ballX + ballSize >= frameRightX
-
-    fun ballHitsTopWall(ballY: Float, ballSize: Float, topFrameY: Float): Boolean =
-        ballY + ballSize >= topFrameY
-
-    fun ballHitsBrick(
-        ballX: Float, ballY: Float, ballSize: Float,
-        brickX: Float, brickY: Float, brickW: Float, brickH: Float
+    fun missileHitsEnemy(
+        missileX: Float, missileY: Float, missileSize: Float,
+        enemyX: Float, enemyY: Float, enemyW: Float, enemyH: Float,
     ): Boolean {
         return aabbOverlap(
-            ballX, ballY, ballSize, ballSize,
-            brickX, brickY, brickW, brickH
+            missileX, missileY, missileSize, missileSize,
+            enemyX, enemyY, enemyW, enemyH
         )
     }
 
-    fun ballHitsPaddle() : Boolean {
+    fun missileHitsPlayer() : Boolean {
         return aabbOverlap(
             ballX.toFloat(),
             ballY.toFloat(),
-            missileRenderer.ballSize.toFloat(),
-            missileRenderer.ballSize.toFloat(),
+            missileRenderer.missileHeight.toFloat(),
+            missileRenderer.missileHeight.toFloat(),
             playerX.toFloat(),
-            Constants.PADDLE_MARGIN,
+            Constants.BOTTOM_FRAME_RATIO * windowHeight,
             playerRenderer.playerSize(),
-            playerRenderer.paddleHeight
+            playerRenderer.playerHeight
         )
     }
 
@@ -207,13 +205,13 @@ class GameController(window: Long, width:Int, height:Int) {
 
         if (!isBallReleased && isSpaceKey) {
             isBallReleased = true
-            ballDY = -(ballSpeedUV * windowHeight)
+            missileDY = -(ballSpeedUV * windowHeight)
             retroSynth.playSquareBeep(freq = 880f, durationMs = 250)
         }
 
         if (isBallReleased) {
             ballX+=(ballDX*deltaTime).roundToInt()
-            ballY+=(ballDY*deltaTime).roundToInt()
+            ballY+=(missileDY*deltaTime).roundToInt()
         }
 
         playerX = (playerX + velocityX * deltaTime).roundToInt()
@@ -228,15 +226,15 @@ class GameController(window: Long, width:Int, height:Int) {
     }
 
     private fun rebuildBricks() {
-        bricks.clear()
+        enemies.clear()
         val totalPixels = windowWidth - 2 * frameWidth
-        val calculatedPixels = Constants.BRICK_COLUMN_COUNT * brickWidth
+        val calculatedPixels = Constants.ENEMY_COLUMN_COUNT * enemyWidth
         val margin = (totalPixels - calculatedPixels) / 2
 
-       var brickY = (Constants.BRICK_START_RATIO * windowHeight).roundToInt()
-        for (i in 0 ..< Constants.BRICK_ROW_COUNT) {
+       var brickY = (Constants.ENEMY_START_RATIO * windowHeight).roundToInt()
+        for (i in 0 ..< Constants.ENEMY_ROW_COUNT) {
             var brickX = frameWidth + margin
-            (0 ..<Constants.BRICK_COLUMN_COUNT).forEach { _ ->
+            (0 ..<Constants.ENEMY_COLUMN_COUNT).forEach { _ ->
                 val brick = Brick(
                     brickX,
                     brickY,
@@ -244,95 +242,59 @@ class GameController(window: Long, width:Int, height:Int) {
                     brickColorArray[i/2 + brickColorIndex],
                     EnemyRenderer(EnemyShader(), windowWidth, windowHeight)
                 )
-                bricks.add(brick)
-                brickX += brickWidth
+                enemies.add(brick)
+                brickX += enemyWidth
             }
-            brickY += brickHeight
+            brickY += enemyHeight
         }
     }
 
     private fun handleCollisions() {
-        val ballY = ballY.toFloat()
-        val ballSize = missileRenderer.ballSize.toFloat()
-        val ballX = ballX.toFloat()
+        val missileY = ballY.toFloat()
+        val missileSize = missileRenderer.missileHeight.toFloat()
+        val missileX = ballX.toFloat()
 
-        bricks.forEach {
-            if (it.isActive && ballHitsBrick(
-                    ballX,
-                    ballY,
-                    ballSize,
-                    it.brickX.toFloat(),
-                    it.brickY.toFloat(),
-                    brickWidth.toFloat(),
-                    brickHeight.toFloat())) {
-                ballDY*=-1 // reverse direction
+        enemies.forEach {
+            if (it.isActive && missileHitsEnemy(
+                    missileX,
+                    missileY,
+                    missileSize,
+                    it.enemyX.toFloat(),
+                    it.enemyY.toFloat(),
+                    enemyWidth.toFloat(),
+                    enemyHeight.toFloat())) {
+                missileDY*=-1 // reverse direction
                 retroSynth.playNoiseBurst(durationMs = 170)
                 it.isActive = false
                 score+=200
-                brickCount--
+                enemyCount--
             }
         }
 
-        val paddleSize = playerRenderer.playerSize()
-        if (ballHitsPaddle()) {
-            val halfSize =  paddleSize / 2f
-            val mid = playerX + halfSize - 1
-            val quarter = mid - (halfSize - 1) / 2f
-            val third = mid + (halfSize - 1) / 2f
-            val ballMid = ballX - 1 + ballSize / 2f
-
-            if (ballMid == mid) {
-                ballDX = 0f
-            } else if (ballMid < quarter) {
-                ballDX = -abs(ballDY)
-            } else if (ballMid < mid) {
-                ballDX = -abs(0.5f * ballDY)
-            } else if (ballMid < third) {
-                ballDX = abs(0.5f * ballDY)
-            } else {
-                ballDX = abs(ballDY)
-            }
-
-            ballDY*=-1 // reverse direction
-        } else if (ballY < Constants.PADDLE_MARGIN) {
-            initBall()
-            balls--
-            if(balls <= 0) gameOver = true
+        val playerSize = playerRenderer.playerSize()
+        if (missileHitsPlayer()) {
+            missileDY*=-1 // reverse direction
+        } else if (missileY < (windowHeight * Constants.BOTTOM_FRAME_RATIO)) {
+            initMissile()
+            missiles--
+            if(missiles <= 0) gameOver = true
         }
 
-        val isHitTopWall = ballHitsTopWall(ballY, ballSize, frameRenderer.startTopY.toFloat())
-        val isHitLeftWall = ballHitsLeftWall(ballX, frameWidth.toFloat())
-        val isHitRightWall = ballHitsRightWall(ballX, ballSize, windowWidth - frameWidth.toFloat())
-        if ( isHitTopWall || isHitRightWall || isHitLeftWall ) {
-            retroSynth.playSquareBeep(freq = 550f, durationMs = 60)
-            // Clamp and reverse
-            ballX.coerceIn(frameWidth.toFloat(), windowWidth - frameWidth - ballSize) 
-            ballY.coerceIn(0f, frameRenderer.startTopY.toFloat())
-            if (isHitTopWall) {
-                if (ballDY >= 0)
-                    ballDY*=-1
-            } else {
-                if (isHitRightWall && ballDX >= 0)
-                    ballDX*=-1
-                if (isHitLeftWall && ballDX <= 0)
-                    ballDX*=-1
-            }
-        }
-
-        if (brickCount <= 0) {
+        // retroSynth.playSquareBeep(freq = 550f, durationMs = 60) save for hitshield
+        if (enemyCount <= 0) {
             isLevelEvent = true
-            playerRenderer.updatePaddleState( Constants.NORMAL_PADDLE_RATIO)
+            playerRenderer.updatePaddleState( Constants.NORMAL_PLAYER_RATIO)
             ballSpeedUV += 0.10f
-        } else if (brickCount <= 36) {
-            playerRenderer.updatePaddleState(Constants.SMALL_PADDLE_RATIO)
+        } else if (enemyCount <= 36) {
+            playerRenderer.updatePaddleState(Constants.SMALL_PLAYER_RATIO)
         }
     }
 
-    private fun initBall() {
-        ballX = (windowWidth / 2f - (windowHeight * Constants.BALL_HEIGHT_RATIO) / 2f).roundToInt()  // center horizontally
+    private fun initMissile() {
+        ballX = (windowWidth / 2f - (windowHeight * Constants.MISSILE_HEIGHT_RATIO) / 2f).roundToInt()  // center horizontally
         ballY = (windowHeight * Constants.BALL_START_RATIO).roundToInt()
         ballDX = 0f
-        ballDY = 0f
+        missileDY = 0f
         isBallReleased = !isBallReleased
         isSpaceKey = false
     }
@@ -341,11 +303,11 @@ class GameController(window: Long, width:Int, height:Int) {
         glClear(GL_COLOR_BUFFER_BIT)
         playerRenderer.render(playerX)
         missileRenderer.render(ballX.toFloat(), ballY.toFloat())
-        bricks.forEach {
+        enemies.forEach {
             if(it.isActive)
-                it.renderer.render(it.brickX, it.brickY, it.brickColor)
+                it.renderer.render(it.enemyX, it.enemyY, it.brickColor)
         }
-        hudRenderer.render(score, balls)
+        hudRenderer.render(score, missiles)
         frameRenderer.render()
     }
 
@@ -353,7 +315,7 @@ class GameController(window: Long, width:Int, height:Int) {
         retroSynth.cleanup()
         playerRenderer.cleanup()
         missileRenderer.cleanup()
-        bricks.forEach { it.renderer.cleanup() }
+        enemies.forEach { it.renderer.cleanup() }
         hudRenderer.cleanup()
         frameRenderer.cleanup()
     }
