@@ -15,7 +15,7 @@ class EnemyRenderer(
     private data class Quad(val vao: Int, val vbo: Int, var vertexCount: Int)
     private lateinit var enemy: Quad
 
-    private var enemyHeight = (windowHeight * Constants.PLAYER_HEIGHT_RATIO).roundToInt()
+    private var enemyHeight = (windowHeight * Constants.ENEMY_HEIGHT_RATIO).roundToInt()
     private var enemyWidth = (windowWidth * Constants.ENEMY_WIDTH_RATIO).roundToInt()
 
     init {
