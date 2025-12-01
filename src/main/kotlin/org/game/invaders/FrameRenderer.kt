@@ -11,6 +11,7 @@ class FrameRenderer(
 ) {
     private data class Quad(val vao: Int, val vbo: Int, var vertexCount: Int)
     private lateinit var bottom: Quad
+    private lateinit var top: Quad
     var startTopY: Int = 0
         private set
 
@@ -47,6 +48,9 @@ class FrameRenderer(
 
         // Draw Bottom
         GL30.glBindVertexArray(bottom.vao)
+        GL30.glDrawArrays(GL30.GL_TRIANGLES, 0, 6)
+        // Draw Top
+        GL30.glBindVertexArray(top.vao)
         GL30.glDrawArrays(GL30.GL_TRIANGLES, 0, 6)
 
         GL30.glBindVertexArray(0)
@@ -91,8 +95,6 @@ class FrameRenderer(
         startTopY =(windowHeight - hudHeight).roundToInt()
 
         bottom = buildQuad(0f,  0.0f, windowWidth.toFloat(), bottomHeight + 0.0f)
-        //top = buildQuad(0f, windowHeight - hudHeight - topHeight, windowWidth.toFloat(), topHeight + 0.0f)
-        //left = buildQuad(0f, 0f, sideWidth + 0.0f, windowHeight - hudHeight - topHeight)
-        //right = buildQuad(windowWidth - sideWidth + 0.0f, 0f, sideWidth + 0.0f, windowHeight - hudHeight - topHeight)
+        top = buildQuad(0f, windowHeight - hudHeight - 1, windowWidth.toFloat(), 1.0f)
     }
 }

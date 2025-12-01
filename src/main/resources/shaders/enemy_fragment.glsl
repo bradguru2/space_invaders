@@ -1,12 +1,12 @@
 #version 330 core
+in vec2 vUV;
 out vec4 FragColor;
 uniform vec3 uColor;
-uniform float bottomMargin;   // e.g. 0.1 means 10% of brick height
-in vec2 vUV;
+uniform sampler2D uTex;
 
 void main() {
-    if (vUV.y < bottomMargin)
-        discard;  // cut off the bottom area
-
-    FragColor = vec4(uColor, 1.0);
+    vec4 texColor = texture(uTex, vUV);
+    vec3 key = vec3(0.0); float tol = 0.02;
+    if (length(texColor.rgb - key) < tol) discard;
+    FragColor = vec4(texColor.rgb * uColor, 1.0);
 }
