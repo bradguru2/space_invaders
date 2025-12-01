@@ -28,6 +28,7 @@ class EnemyManager(
     private var enemyTexture3: Int = 0
     private var enemyTexture4: Int = 0
     private var enemyTexture5: Int = 0
+    private var ufoTexture: Int = 0
 
     fun rebuildEnemies() {
         loadEnemyTextures()
@@ -51,8 +52,17 @@ class EnemyManager(
                 enemies.add(enemy)
                 enemyX += enemyWidth + spacer
             }
-            enemyY += enemyHeight
+            enemyY += enemyHeight + margin
         }
+        enemies.add(
+            Enemy(
+                ((windowWidth - enemyWidth) / 2.0f).roundToInt(),
+                enemyY,
+                index = 6,
+                true,
+                EnemyRenderer(EnemyShader(), windowWidth, windowHeight, getEnemyTexture(6))
+            )
+        )
     }
 
     fun onWindowResize(newWindowWidth: Int, newWindowHeight: Int) {
@@ -110,7 +120,8 @@ class EnemyManager(
             2 -> enemyTexture2
             3 -> enemyTexture3
             4 -> enemyTexture4
-            else -> enemyTexture5
+            5 -> enemyTexture5
+            else ->  ufoTexture
         }
     }
 
@@ -121,5 +132,6 @@ class EnemyManager(
         enemyTexture3 = loadTextureFromResource("/images/enemy3.png")
         enemyTexture4 = loadTextureFromResource("/images/enemy4.png")
         enemyTexture5 = loadTextureFromResource("/images/enemy5.png")
+        ufoTexture = loadTextureFromResource("/images/ufo.png")
     }
 }

@@ -45,7 +45,7 @@ class GameController(window: Long, width:Int, height:Int) {
     private var missileY = 0
     private var lastTime = System.currentTimeMillis()
     private var deltaTime = 0f
-    private var playerSpeed = 600f  // pixels per second
+    private var playerSpeedUV = 0.25f  // percentage converts to UV
     private var isBallReleased = true
     private var ballDX = 0f
     private var missileDY = 0f
@@ -136,18 +136,18 @@ class GameController(window: Long, width:Int, height:Int) {
 
         if (glfwGetKey(gameWindow, GLFW_KEY_LEFT) == GLFW_PRESS ||
             glfwGetKey(gameWindow, GLFW_KEY_A) == GLFW_PRESS) {
-            velocityX -= playerSpeed
+            velocityX -= playerSpeedUV * windowWidth
         }
 
         if (glfwGetKey(gameWindow, GLFW_KEY_RIGHT) == GLFW_PRESS ||
             glfwGetKey(gameWindow, GLFW_KEY_D) == GLFW_PRESS) {
-            velocityX += playerSpeed
+            velocityX += playerSpeedUV * windowWidth
         }
 
         if (!isBallReleased && isSpaceKey) {
             isBallReleased = true
             missileDY = -(ballSpeedUV * windowHeight)
-            retroSynth.playSquareBeep(freq = 880f, durationMs = 250)
+            retroSynth.playSquareBeep(freq = 880f, durationMs = 250) // Player fire
         }
 
         if (isBallReleased) {
