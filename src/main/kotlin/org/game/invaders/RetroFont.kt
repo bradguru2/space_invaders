@@ -1,17 +1,13 @@
 package org.game.invaders
 
-import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL13
-import org.lwjgl.opengl.GL15
-import org.lwjgl.opengl.GL20
-import org.lwjgl.opengl.GL30
+import org.lwjgl.opengl.*
 import org.lwjgl.system.MemoryUtil
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
-import java.nio.FloatBuffer
+import kotlin.math.roundToInt
 
 /**
  * RetroFont
@@ -26,20 +22,58 @@ import java.nio.FloatBuffer
  *
  * TODO markers indicate default values you can change later.
  */
-class RetroFont(
-    val glyphWidth: Int = DEFAULT_GLYPH_WIDTH,    // TODO: adjust glyph width (px)
-    val glyphHeight: Int = DEFAULT_GLYPH_HEIGHT,  // TODO: adjust glyph height (px)
-    private val cols: Int = GLYPH_COLUMNS,
-    private val rows: Int = GLYPH_ROWS,
-    private val firstChar: Int = FIRST_CHAR,
-) {
+class RetroFont() {
     val textureId: Int
     private val vaoId: Int
     private val vboId: Int
-    val atlasWidth: Int
-    val atlasHeight: Int
+    private val atlasWidth: Int
+    private val atlasHeight: Int
+    // Build this once alongside the atlas so you know where each code point lives.
+    // same list you used when drawing the atlas
+    private val codePoints: List<Int> = buildList {
+        addAll(0x0020..0x024F)   // Latin + Latin-1 + Latin Extended-A/B
+        addAll(0x1E00..0x1EFF)   // Latin Extended Additional (Vietnamese precomposed)
+        addAll(0x0370..0x03FF)   // Greek
+        addAll(0x0400..0x04FF)   // Cyrillic
+        addAll(0x0530..0x058F)   // Armenian
+        addAll(0x10A0..0x10FF)   // Georgian (Mkhedruli)
+        addAll(0x1C90..0x1CBF)   // Georgian Extended (Mtavruli) – optional
+        addAll(0x0590..0x05FF)   // Hebrew
+        addAll(0x0600..0x06FF)   // Arabic
+        addAll(0x0750..0x077F)   // Arabic Supplement
+        addAll(0x0E00..0x0E7F)   // Thai
+        addAll(0x0900..0x097F)   // Devanagari
+        addAll(0x3040..0x30FF)   // Hiragana/Katakana
+        //addAll(0xAC00..0xD7A3)   // Hangul syllables
+        addAll(listOf(0xC810, 0xC218, 0xBC30, 0xB4E4)) // Hangul minimal
+        addAll(0x1200..0x137F)   // Ethiopic (Amharic/Tigrinya)
+        addAll(listOf(0x5F97, 0x5206, 0x8239, 0x96BB, 0x53EA)) // minimal CJK
+        // new Indic/SE Asia ranges
+        addAll(0x0980..0x09FF) // Bengali
+        addAll(0x0B80..0x0BFF) // Tamil
+        addAll(0x0C00..0x0C7F) // Telugu
+        addAll(0x0C80..0x0CFF) // Kannada
+        addAll(0x0A80..0x0AFF) // Gujarati
+        addAll(0x0A00..0x0A7F) // Gurmukhi (Punjabi)
+        addAll(0x1780..0x17FF) // Khmer
+        addAll(0x1000..0x109F) // Myanmar (Burmese)
+        addAll(0x0D80..0x0DFF) // Sinhala
+    }
+
+    private val glyphIndex: Map<Int, Int> = buildMap {
+        var i = 0
+        for (cp in codePoints) put(cp, i++)
+    }
+
+    val glyphWidth: Int = DEFAULT_GLYPH_WIDTH    // TODO: adjust glyph width (px)
+    val glyphHeight: Int = DEFAULT_GLYPH_HEIGHT  // TODO: adjust glyph height (px)
+    private val cols: Int = GLYPH_COLUMNS
+    private var rows: Int
 
     init {
+        val neededRows = (codePoints.size + cols - 1) / cols
+        rows = neededRows                      // or max(neededRows, GLYPH_ROWS) if you want a minimum
+
         atlasWidth = glyphWidth * cols
         atlasHeight = glyphHeight * rows
 
@@ -82,55 +116,51 @@ class RetroFont(
     fun renderText(xStart: Float, yStart: Float, text: String) {
         if (text.isEmpty()) return
 
-        val chars = text.toCharArray()
-        val vertsPerChar = 6 // two triangles per glyph
-        val floatsPerVert = 4 // x, y, u, v
-        val totalFloats = chars.size * vertsPerChar * floatsPerVert
-        val fb: FloatBuffer = MemoryUtil.memAllocFloat(totalFloats)
+        val glyphCount = text.codePointCount(0, text.length)
+        val vertsPerChar = 6
+        val floatsPerVert = 4
+        val fb = MemoryUtil.memAllocFloat(glyphCount * vertsPerChar * floatsPerVert)
 
         var penX = xStart
         val penY = yStart
-
         val glyphTexW = glyphWidth.toFloat() / atlasWidth.toFloat()
         val glyphTexH = glyphHeight.toFloat() / atlasHeight.toFloat()
 
-        for (ch in chars) {
-            val code = ch.code
-            if (code < firstChar || code >= firstChar + (cols * rows)) {
-                penX += glyphWidth // unknown -> advance
+        var i = 0
+        while (i < text.length) {
+            val cp = text.codePointAt(i)
+            i += Character.charCount(cp)
+
+            val idx = glyphIndex[cp]
+            if (idx == null) {
+                penX += glyphWidth // unknown glyph
                 continue
             }
-            val idx = code - firstChar
+
             val gx = idx % cols
             val gy = idx / cols
 
             val u0 = gx * glyphTexW
             val u1 = u0 + glyphTexW
-            // v=0 is bottom in OpenGL; top row of atlas is row 0 in Java2D
-            val v0 = 1.0f - (gy + 1) * glyphTexH
-            val v1 = 1.0f - gy * glyphTexH
-
+            val v0 = 1f - (gy + 1) * glyphTexH
+            val v1 = 1f - gy * glyphTexH
 
             val x0 = penX
             val y0 = penY
             val x1 = penX + glyphWidth
             val y1 = penY + glyphHeight
 
-            // triangle 1
             fb.put(x0).put(y0).put(u0).put(v0)
             fb.put(x1).put(y0).put(u1).put(v0)
             fb.put(x1).put(y1).put(u1).put(v1)
-            // triangle 2
             fb.put(x1).put(y1).put(u1).put(v1)
             fb.put(x0).put(y1).put(u0).put(v1)
             fb.put(x0).put(y0).put(u0).put(v0)
 
-            // advance pen for fixed-width font
             penX += glyphWidth
         }
 
         fb.flip()
-
         GL30.glBindVertexArray(vaoId)
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboId)
         GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0, fb)
@@ -138,10 +168,7 @@ class RetroFont(
 
         GL13.glActiveTexture(GL13.GL_TEXTURE0)
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId)
-
-        val vertexCount = chars.size * vertsPerChar
-        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, vertexCount)
-
+        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, glyphCount * vertsPerChar)
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0)
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0)
         GL30.glBindVertexArray(0)
@@ -166,48 +193,61 @@ class RetroFont(
 
     private fun createAtlasBitmap(): BufferedImage {
         val image = BufferedImage(atlasWidth, atlasHeight, BufferedImage.TYPE_INT_ARGB)
-        val g = image.createGraphics()
+        val graphics = image.createGraphics()
 
-        // crisp pixel look (no antialias)
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
-        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF)
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
+        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF)
 
-        // fill background black
-        g.color = Color.BLACK
-        g.fillRect(0, 0, atlasWidth, atlasHeight)
+        graphics.color = Color.BLACK
+        graphics.fillRect(0, 0, atlasWidth, atlasHeight)
 
-        // TODO: Change base font if you want a different stroke (default is Monospaced bold)
-        val fontSize = (glyphHeight * 0.85f).toInt()
-        val font = Font("Monospaced", Font.BOLD, fontSize)
-        g.font = font
-        g.color = Color.WHITE
+        // Choose a mono font with wide coverage; try fallbacks if needed
+        val baseFontName = "Noto Sans Mono"
+        val fallbackFontNames = listOf("DejaVu Sans Mono", "Ubuntu Mono", "Monospaced")
+        val fontSize = (glyphHeight * Constants.FONT_SCALE).toInt()
+
+        fun pickFontFor(cp: Int): Font {
+            val allNames = listOf(baseFontName) + fallbackFontNames
+            for (name in allNames) {
+                val f = Font(name, Font.PLAIN, fontSize)
+                if (f.canDisplay(cp)) return f
+            }
+            // last resort: use first fallback even if it can’t display
+            return Font(fallbackFontNames.last(), Font.PLAIN, fontSize)
+        }
 
         var cx = 0
         var cy = 0
-        for (code in firstChar until (firstChar + cols * rows)) {
-            val ch = code.toChar().toString()
+        for (cp in codePoints) {
+            val s = String(Character.toChars(cp))
+            graphics.font = pickFontFor(cp)
+
+            val fm = graphics.fontMetrics
             val x = cx * glyphWidth
             val y = cy * glyphHeight
 
-            val fm = g.fontMetrics
-            val glyphX = x + (glyphWidth - fm.charWidth(code)) / 2
-            val glyphY = y + ((glyphHeight - fm.height) / 2) + fm.ascent
+            val glyphW = fm.stringWidth(s)
+            val glyphH = fm.descent + fm.ascent
+            val glyphX = x + (glyphWidth - glyphW) / 2
+            val glyphY = y + (glyphHeight - glyphH) / 2 + fm.ascent
 
-            g.drawString(ch, glyphX, glyphY)
-
+            graphics.color = Color.WHITE
+            graphics.clipRect(x, y, glyphWidth, glyphHeight)
+            graphics.drawString(s, glyphX, glyphY - 6)
+            graphics.clip = null
             cx++
             if (cx >= cols) {
                 cx = 0
                 cy++
+                //if (cy * glyphHeight >= atlasHeight) break // avoid overflow
             }
         }
 
-        // apply scanlines for retro feel (default mild intensity)
         applyScanlines(image)
-
-        g.dispose()
+        graphics.dispose()
         return image
     }
+
 
     private fun applyScanlines(img: BufferedImage) {
         val intensity = 0.00f // lower = darker scanline, adjust to taste
@@ -227,7 +267,6 @@ class RetroFont(
             }
         }
     }
-
 
     private fun uploadAtlasToTexture(img: BufferedImage): Int {
         // convert to single-channel red bytes
@@ -273,10 +312,8 @@ class RetroFont(
 
     companion object {
         // TODO: tweak these defaults (one place to change)
-        private const val DEFAULT_GLYPH_WIDTH = 32
+        private const val DEFAULT_GLYPH_WIDTH = 30
         private const val DEFAULT_GLYPH_HEIGHT = 40
         private const val GLYPH_COLUMNS = 16
-        private const val GLYPH_ROWS = 6
-        private const val FIRST_CHAR = 32
     }
 }
