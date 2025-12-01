@@ -6,9 +6,10 @@ package org.game.invaders
 object Constants {
     // Playfield
     const val DIVIDE_LINE_RATIO = 0.10f
+    const val FONT_SCALE = 1.00f // Scale to Glyph windows and reserve space to avoid clipping
 
     // HUD
-    const val HUD_HEIGHT_RATIO: Float = 0.05f
+    const val HUD_HEIGHT_RATIO: Float = 0.10f
     const val RIGHT_PADDING_PX: Float = 20f
 
     // Colors
@@ -40,11 +41,11 @@ object Constants {
 
     // Brick Size Ratio
     const val ENEMY_HEIGHT_RATIO = PLAYER_HEIGHT_RATIO
-    const val ENEMY_WIDTH_RATIO = 2 * SIDE_FRAME_RATIO // A brick is twice as wide as a side-frame
+    const val ENEMY_WIDTH_RATIO = 1.75 * SIDE_FRAME_RATIO
     const val ENEMY_MARGIN_RATIO = 0.15f // In local space
-    const val ENEMY_COLUMN_COUNT = 6 // 9 * 0.10 = 0.90 = 1 - 2 * 0.05
-    const val ENEMY_ROW_COUNT = 6 // Standard break number of rows
-    const val ENEMY_START_RATIO = 0.35f
+    const val ENEMY_COLUMN_COUNT = 6
+    const val ENEMY_ROW_COUNT = 6
+    const val ENEMY_START_RATIO = 0.40f
 
     // Missile Constants
     const val BALL_START_RATIO = 0.50f

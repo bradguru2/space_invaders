@@ -33,11 +33,11 @@ object MusicUtilities {
     fun playAsync(scope: CoroutineScope, resource: String): Job =
         scope.launch(Dispatchers.IO) {
             stop = false
-            playLoopingMp3(resource) // your blocking loop uses `stop` to exit
+            playLoopingAudio(resource) // your blocking loop uses `stop` to exit
         }
 
     @JvmStatic
-    private suspend fun playLoopingMp3(path: String) {
+    private suspend fun playLoopingAudio(path: String) {
         // Init OpenAL
         val device = alcOpenDevice(null as ByteBuffer?)
         val context = alcCreateContext(device, null as IntBuffer?)
