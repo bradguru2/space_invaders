@@ -18,10 +18,7 @@ import org.lwjgl.glfw.GLFW.glfwSwapBuffers
 import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
 import org.lwjgl.opengl.GL11.glClear
-import kotlin.collections.plusAssign
-import kotlin.dec
 import kotlin.math.roundToInt
-import kotlin.times
 
 class GameController(window: Long, width:Int, height:Int) {
 
@@ -170,17 +167,18 @@ class GameController(window: Long, width:Int, height:Int) {
     }
 
     private fun handleCollisions() {
-        val missileY = missileY.toFloat()
-        val missileSize = missileRenderer.missileHeight.toFloat()
-        val missileX = missileX.toFloat()
+        val my = missileY.toFloat()
+        val mw = missileRenderer.missileWidth.toFloat()
+        val mh = missileRenderer.missileHeight.toFloat()
+        val mx = missileX.toFloat()
 
         if (enemyManager.hasCollision(
-                missileX.roundToInt(),
-                missileY.roundToInt(),
-                missileRenderer.missileWidth,
-                missileRenderer.missileHeight,
+                mx.roundToInt(),
+                my.roundToInt(),
+                mw.roundToInt(),
+                mh.roundToInt(),
             )) {
-            missileDY *= -1 // reverse direction
+            missileDY *= 0
             retroSynth.playNoiseBurst(durationMs = 170)
             score += 200
             enemyCount--
@@ -188,23 +186,26 @@ class GameController(window: Long, width:Int, height:Int) {
 
         val playerSize = playerRenderer.playerSize()
         if (missileHitsPlayer(
-            missileX,
-            missileY,
-            missileSize,
-            missileSize,
+            mx,
+            my,
+            mw,
+            mw,
             playerX.toFloat(),
             windowHeight * Constants.BOTTOM_FRAME_RATIO,
             playerSize,
             playerRenderer.playerHeight
         )) {
-            missileDY*=-1 // reverse direction
-        } else if (missileY < (windowHeight * Constants.BOTTOM_FRAME_RATIO)) {
-            initMissile()
+            missileDY = 0f
+            missileY = -500
             ships--
-            if(ships <= 0) gameOver = true
+            gameOver = ships <= 0
+            retroSynth.playNoiseBurst(durationMs = 170)
+        } else if (my <= (windowHeight * Constants.BOTTOM_FRAME_RATIO)
+            || my >= frameRenderer.startTopY) {
+            missileDY = 0f
+            missileY = -500
+            //retroSynth.playSquareBeep(freq = 550f, durationMs = 60)
         }
-
-        // retroSynth.playSquareBeep(freq = 550f, durationMs = 60) save for hitshield
         if (enemyCount <= 0) {
             isLevelEvent = true
             playerRenderer.updatePaddleState( Constants.NORMAL_PLAYER_RATIO)

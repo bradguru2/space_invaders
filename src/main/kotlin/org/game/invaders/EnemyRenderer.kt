@@ -5,23 +5,21 @@ import org.joml.Matrix4f
 import org.lwjgl.opengl.GL30
 import kotlin.math.roundToInt
 
-class EnemyRenderer(private val shader: EnemyShader, private var windowWidth: Int, private var windowHeight:Int) {
+class EnemyRenderer(
+    private val shader:
+    EnemyShader,
+    private var windowWidth: Int,
+    private var windowHeight: Int,
+    private var enemyTexture: Int,
+) {
     private data class Quad(val vao: Int, val vbo: Int, var vertexCount: Int)
     private lateinit var enemy: Quad
 
     private var enemyHeight = (windowHeight * Constants.PLAYER_HEIGHT_RATIO).roundToInt()
     private var enemyWidth = (windowWidth * Constants.ENEMY_WIDTH_RATIO).roundToInt()
 
-    private var enemyTexture0: Int = 0
-    private var enemyTexture1: Int = 0
-    private var enemyTexture2: Int = 0
-    private var enemyTexture3: Int = 0
-    private var enemyTexture4: Int = 0
-    private var enemyTexture5: Int = 0
-
     init {
         buildGeometry() // Initial paddle position at roughly center
-        loadEnemyTextures()
     }
 
     fun cleanup() {
@@ -32,17 +30,17 @@ class EnemyRenderer(private val shader: EnemyShader, private var windowWidth: In
         shader.cleanup()
     }
 
-    fun updateWindowSize(w: Int, h: Int) {
+    fun updateWindowSize(w: Int, h: Int, newEnemyTexture: Int) {
         shader.rebuild()
         windowWidth = w
         windowHeight = h
         enemyHeight = (h * Constants.PLAYER_HEIGHT_RATIO).roundToInt()
         enemyWidth = (w * Constants.ENEMY_WIDTH_RATIO).roundToInt()
         buildGeometry()
-        loadEnemyTextures()
+        enemyTexture = newEnemyTexture
     }
 
-    fun render(enemyX: Int, enemyY: Int, enemyRow: Int) {
+    fun render(enemyX: Int, enemyY: Int) {
         shader.use()
 
         // Projection for Window Coordinates
@@ -58,30 +56,10 @@ class EnemyRenderer(private val shader: EnemyShader, private var windowWidth: In
         // Draw Enemy
         GL30.glBindVertexArray(enemy.vao)
         GL30.glActiveTexture(GL30.GL_TEXTURE0)
-        GL30.glBindTexture(GL30.GL_TEXTURE_2D, getEnemyTexture(enemyRow))
+        GL30.glBindTexture(GL30.GL_TEXTURE_2D, enemyTexture)
         GL30.glDrawArrays(GL30.GL_TRIANGLES, 0, 6)
 
         GL30.glBindVertexArray(0)
-    }
-
-    private fun getEnemyTexture(enemyRow: Int): Int {
-        return when(enemyRow) {
-            0 -> enemyTexture0
-            1 -> enemyTexture1
-            2 -> enemyTexture2
-            3 -> enemyTexture3
-            4 -> enemyTexture4
-            else -> enemyTexture5
-        }
-    }
-
-    private fun loadEnemyTextures(){
-        enemyTexture0 = loadTextureFromResource("/images/enemy0.png")
-        enemyTexture1 = loadTextureFromResource("/images/enemy1.png")
-        enemyTexture2 = loadTextureFromResource("/images/enemy2.png")
-        enemyTexture3 = loadTextureFromResource("/images/enemy3.png")
-        enemyTexture4 = loadTextureFromResource("/images/enemy4.png")
-        enemyTexture5 = loadTextureFromResource("/images/enemy5.png")
     }
 
     private fun buildQuad(w: Float, h: Float): Quad {
