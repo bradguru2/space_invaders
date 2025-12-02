@@ -11,9 +11,10 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
 
     var playerHeight = windowHeight * Constants.PLAYER_HEIGHT_RATIO
         private set
-    var paddleState = Constants.NORMAL_PLAYER_RATIO
+    var playerState = Constants.NORMAL_PLAYER_RATIO
         private set
-    private var playerWidth = windowWidth * paddleState
+    var playerWidth = windowWidth * playerState
+        private set
 
     init {
         buildGeometry() // Initial paddle position at roughly center
@@ -28,8 +29,8 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
         shader.cleanup()
     }
 
-    fun updatePaddleState(newPaddleState: Float) {
-        paddleState = newPaddleState
+    fun updatePlayerState(newPaddleState: Float) {
+        playerState = newPaddleState
         playerWidth = windowWidth * newPaddleState
         shader.rebuild()
         buildGeometry()
