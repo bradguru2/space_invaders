@@ -8,6 +8,11 @@ class EnemyManager(
     private var windowWidth: Int,
     private var windowHeight: Int
 ) {
+    enum class CollisionState {
+        None,
+        Enemy,
+        Ufo
+    }
 
     // Track enemies
     data class Enemy (
@@ -89,7 +94,7 @@ class EnemyManager(
         }
     }
 
-    fun hasCollision(missileX: Int, missileY: Int, missileWidth: Int, missileHeight: Int): Boolean {
+    fun hasCollision(missileX: Int, missileY: Int, missileWidth: Int, missileHeight: Int): CollisionState {
         enemies.forEach {
             if (it.isActive && missileHitsEnemy(
                     missileX.toFloat(),
@@ -103,10 +108,11 @@ class EnemyManager(
                 )
             ) {
                 it.isActive = false
-                return true // Can Collide only with one enemy per check
+                // Can Collide only with one enemy per check
+                return if (it.index < 6) CollisionState.Enemy else CollisionState.Ufo
             }
         }
-        return false
+        return CollisionState.None
     }
 
     fun cleanUp() {

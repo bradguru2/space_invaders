@@ -48,7 +48,7 @@ object Constants {
     const val ENEMY_START_RATIO = 0.375f
 
     // Missile Constants
-    const val BALL_START_RATIO = 0.50f
+    const val PLAYER_MISSILE_START_RATIO = BOTTOM_FRAME_RATIO + PLAYER_HEIGHT_RATIO
     const val MISSILE_HEIGHT_RATIO = 0.06f
     const val MISSILE_WIDTH_RATIO = 0.01f
 
