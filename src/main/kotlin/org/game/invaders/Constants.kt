@@ -40,12 +40,12 @@ object Constants {
     const val BOTTOM_FRAME_RATIO = 0.10f // 10 % of window height
 
     // Brick Size Ratio
-    const val ENEMY_HEIGHT_RATIO = PLAYER_HEIGHT_RATIO
-    const val ENEMY_WIDTH_RATIO = 1.75 * SIDE_FRAME_RATIO
+    const val ENEMY_HEIGHT_RATIO = 0.07f
+    const val ENEMY_WIDTH_RATIO = 1.21 * SIDE_FRAME_RATIO
     const val ENEMY_MARGIN_RATIO = 0.15f // In local space
     const val ENEMY_COLUMN_COUNT = 6
     const val ENEMY_ROW_COUNT = 6
-    const val ENEMY_START_RATIO = 0.40f
+    const val ENEMY_START_RATIO = 0.375f
 
     // Missile Constants
     const val BALL_START_RATIO = 0.50f
