@@ -31,14 +31,13 @@ class GameController(window: Long, width:Int, height:Int) {
     private var enemyManager = EnemyManager(width, height)
     private var score = 0
     private var ships = 3
-    private var isLevelEvent = true
+    private var isLevelEvent = false
     private var level = 0
     private var gameWindow = window
     private var windowWidth = width
     private var windowHeight = height
     private var gameOver = true
     private var playerX = windowWidth / 2
-    private var enemyCount = Constants.ENEMY_COLUMN_COUNT * Constants.ENEMY_ROW_COUNT
     private var frameWidth = (windowWidth * Constants.SIDE_FRAME_RATIO).roundToInt()
     private var divideLineWidth = (windowWidth * Constants.DIVIDE_LINE_RATIO).roundToInt()
 
@@ -103,7 +102,6 @@ class GameController(window: Long, width:Int, height:Int) {
 
     private fun initLevel() {
         // Create enemies, set positions, assign shaders
-        enemyCount = Constants.ENEMY_COLUMN_COUNT * Constants.ENEMY_ROW_COUNT
         playerX = divideLineWidth
         enemyManager.rebuildEnemies()
     }
@@ -134,6 +132,10 @@ class GameController(window: Long, width:Int, height:Int) {
 
         if (gameOver && glfwGetKey(gameWindow, GLFW_KEY_F2) == GLFW_PRESS) {
             gameOver = false
+            isLevelEvent = true
+            level = 0
+            score = 0
+            ships = 3
         }
     }
 
@@ -154,6 +156,16 @@ class GameController(window: Long, width:Int, height:Int) {
             velocityX += playerSpeedUV * windowWidth
         }
 
+        playerX += (velocityX * deltaTime).roundToInt()
+
+        val playerWidth = playerRenderer.playerWidth.roundToInt()
+
+        // Clamp player to window boundaries
+        playerX = playerX.coerceIn(
+            divideLineWidth,                            // left line
+            windowWidth - divideLineWidth - playerWidth // right line
+        )
+
         if (isMissileFired) {
             missileY += (missileDY * deltaTime).roundToInt()
         } else if (isSpaceKey) {
@@ -161,18 +173,11 @@ class GameController(window: Long, width:Int, height:Int) {
             isSpaceKey = false
         }
 
-        playerX = (playerX + velocityX * deltaTime).roundToInt()
-
-        val playerWidth = playerRenderer.playerSize().roundToInt()
-
-        // Clamp player to window boundaries
-        playerX = playerX.coerceIn(
-            divideLineWidth,                           // left wall
-            windowWidth - divideLineWidth - playerWidth // right wall
-        )
+        enemyManager.update(deltaTime)
     }
 
     private fun handleCollisions() {
+        if (gameOver) return
         val my = missileY.toFloat()
         val mw = missileRenderer.missileWidth.toFloat()
         val mh = missileRenderer.missileHeight.toFloat()
@@ -184,20 +189,20 @@ class GameController(window: Long, width:Int, height:Int) {
             mw.roundToInt(),
             mh.roundToInt(),
         )
-        if (collisionState!= EnemyManager.CollisionState.None) {
+        if (collisionState == EnemyManager.CollisionState.Enemy || collisionState == EnemyManager.CollisionState.Ufo) {
             missileDY = 0f
             missileY = -500
             isMissileFired = false
             retroSynth.playNoiseBurst(durationMs = 170)
-            if (collisionState == EnemyManager.CollisionState.Enemy) {
-                score += 50
-                enemyCount--
+            score += if (collisionState == EnemyManager.CollisionState.Enemy) {
+                50
             } else {
-                score += 200
+                200
             }
+        } else if (collisionState == EnemyManager.CollisionState.Invaded) {
+            gameOver = true
         }
 
-        val playerSize = playerRenderer.playerSize()
         if (missileHitsPlayer(
             mx,
             my,
@@ -205,7 +210,7 @@ class GameController(window: Long, width:Int, height:Int) {
             mw,
             playerX.toFloat(),
             windowHeight * Constants.BOTTOM_FRAME_RATIO,
-            playerSize,
+            playerRenderer.playerWidth,
             playerRenderer.playerHeight
         )) {
             missileDY = 0f
@@ -221,12 +226,8 @@ class GameController(window: Long, width:Int, height:Int) {
             isMissileFired = false
             //retroSynth.playSquareBeep(freq = 550f, durationMs = 60)
         }
-        if (enemyCount <= 0) {
+        if (enemyManager.enemyCount <= 0) {
             isLevelEvent = true
-            //playerRenderer.updatePlayerState( Constants.NORMAL_PLAYER_RATIO)
-            //missileSpeedUV += 0.10f
-        } else if (enemyCount <= 36) {
-            //playerRenderer.updatePlayerState(Constants.SMALL_PLAYER_RATIO)
         }
     }
 
@@ -241,8 +242,10 @@ class GameController(window: Long, width:Int, height:Int) {
 
     private fun render() {
         glClear(GL_COLOR_BUFFER_BIT)
-        playerRenderer.render(playerX)
-        missileRenderer.render(missileX.toFloat(), missileY.toFloat())
+        if (!enemyManager.isInvaded) {
+            playerRenderer.render(playerX)
+            missileRenderer.render(missileX.toFloat(), missileY.toFloat())
+        }
         enemyManager.render()
         hudRenderer.render(score, ships)
         frameRenderer.render()

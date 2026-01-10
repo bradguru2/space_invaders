@@ -36,9 +36,7 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
         buildGeometry()
     }
 
-    fun playerSize(): Float {
-        return playerWidth
-    }
+
 
     fun updateWindowSize(w: Int, h: Int, s: Float) {
         shader.rebuild()

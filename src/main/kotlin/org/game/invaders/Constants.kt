@@ -39,7 +39,7 @@ object Constants {
     const val SIDE_FRAME_RATIO = 0.05f // 5 % of window width
     const val BOTTOM_FRAME_RATIO = 0.10f // 10 % of window height
 
-    // Brick Size Ratio
+    // Enemy Size Ratio
     const val ENEMY_HEIGHT_RATIO = 0.07f
     const val ENEMY_WIDTH_RATIO = 1.21 * SIDE_FRAME_RATIO
     const val ENEMY_MARGIN_RATIO = 0.15f // In local space
