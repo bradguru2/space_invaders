@@ -29,6 +29,7 @@ class GameController(window: Long, width:Int, height:Int) {
     private var hudRenderer = HudRenderer(RetroFont(), HudShader(), width, height)
     private var frameRenderer = FrameRenderer(FrameShader(), width, height)
     private var enemyManager = EnemyManager(width, height)
+
     private var score = 0
     private var ships = 3
     private var isLevelEvent = false
@@ -40,7 +41,6 @@ class GameController(window: Long, width:Int, height:Int) {
     private var playerX = windowWidth / 2
     private var frameWidth = (windowWidth * Constants.SIDE_FRAME_RATIO).roundToInt()
     private var divideLineWidth = (windowWidth * Constants.DIVIDE_LINE_RATIO).roundToInt()
-
     private var missileX = 0
     private var missileY = -500
     private var lastTime = System.currentTimeMillis()
@@ -142,7 +142,7 @@ class GameController(window: Long, width:Int, height:Int) {
     private fun update() {
 
         // Exit here if game over
-        if (gameOver) return
+        if (gameOver || isLevelEvent) return
 
         var velocityX = 0f
 
@@ -173,11 +173,11 @@ class GameController(window: Long, width:Int, height:Int) {
             isSpaceKey = false
         }
 
-        enemyManager.update(deltaTime)
+        enemyManager.update(deltaTime, retroSynth)
     }
 
     private fun handleCollisions() {
-        if (gameOver) return
+        if (gameOver || isLevelEvent) return
         val my = missileY.toFloat()
         val mw = missileRenderer.missileWidth.toFloat()
         val mh = missileRenderer.missileHeight.toFloat()
@@ -193,7 +193,7 @@ class GameController(window: Long, width:Int, height:Int) {
             missileDY = 0f
             missileY = -500
             isMissileFired = false
-            retroSynth.playNoiseBurst(durationMs = 170)
+            retroSynth.playNoiseBurst(durationMs = 300)
             score += if (collisionState == EnemyManager.CollisionState.Enemy) {
                 50
             } else {
@@ -201,6 +201,7 @@ class GameController(window: Long, width:Int, height:Int) {
             }
         } else if (collisionState == EnemyManager.CollisionState.Invaded) {
             gameOver = true
+            retroSynth.playInvaderStep(2000)
         }
 
         if (missileHitsPlayer(
@@ -218,13 +219,12 @@ class GameController(window: Long, width:Int, height:Int) {
             isMissileFired = false
             ships--
             gameOver = ships <= 0
-            retroSynth.playNoiseBurst(durationMs = 170)
+            retroSynth.playNoiseBurst(durationMs = 300)
         } else if (my <= (windowHeight * Constants.BOTTOM_FRAME_RATIO)
             || my >= (frameRenderer.startTopY - missileRenderer.missileHeight)) {
             missileDY = 0f
             missileY = -500
             isMissileFired = false
-            //retroSynth.playSquareBeep(freq = 550f, durationMs = 60)
         }
         if (enemyManager.enemyCount <= 0) {
             isLevelEvent = true
@@ -237,7 +237,7 @@ class GameController(window: Long, width:Int, height:Int) {
         isMissileFired = true
         missileDX = 0f
         missileDY = (missileSpeedUV * windowHeight)
-        retroSynth.playSquareBeep(freq = 880f, durationMs = 250) // Player fire
+        retroSynth.playSquareBeep(freq = 880f, durationMs = 300) // Player fire
     }
 
     private fun render() {

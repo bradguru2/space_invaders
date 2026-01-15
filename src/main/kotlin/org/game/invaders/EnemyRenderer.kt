@@ -9,8 +9,7 @@ class EnemyRenderer(
     private val shader:
     EnemyShader,
     private var windowWidth: Int,
-    private var windowHeight: Int,
-    private var enemyTexture: Int,
+    private var windowHeight: Int
 ) {
     private data class Quad(val vao: Int, val vbo: Int, var vertexCount: Int)
     private lateinit var enemy: Quad
@@ -30,17 +29,16 @@ class EnemyRenderer(
         shader.cleanup()
     }
 
-    fun updateWindowSize(w: Int, h: Int, newEnemyTexture: Int) {
+    fun updateWindowSize(w: Int, h: Int) {
         shader.rebuild()
         windowWidth = w
         windowHeight = h
         enemyHeight = (h * Constants.PLAYER_HEIGHT_RATIO).roundToInt()
         enemyWidth = (w * Constants.ENEMY_WIDTH_RATIO).roundToInt()
         buildGeometry()
-        enemyTexture = newEnemyTexture
     }
 
-    fun render(enemyX: Int, enemyY: Int) {
+    fun render(enemyX: Int, enemyY: Int, enemyTexture: Int) {
         shader.use()
 
         // Projection for Window Coordinates
