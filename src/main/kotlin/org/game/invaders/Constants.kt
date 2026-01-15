@@ -52,6 +52,11 @@ object Constants {
     const val MISSILE_HEIGHT_RATIO = 0.06f
     const val MISSILE_WIDTH_RATIO = 0.01f
 
+    // Ufo Constants
+    const val UFO_SECONDS = 20.0f
+    const val UFO_SOUND_INTERVAL = 1.0f
+    const val UFO_SOUND_MILLIS = (UFO_SOUND_INTERVAL * 1000).toInt()
+
     // Shader Resource Paths
     const val HUD_VERTEX_SHADER_PATH = "/shaders/hud_vertex.glsl"
     const val HUD_FRAGMENT_SHADER_PATH = "/shaders/hud_fragment.glsl"

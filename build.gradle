@@ -32,6 +32,16 @@ dependencies {
     runtimeOnly "org.lwjgl:lwjgl-opengl::natives-linux"
     runtimeOnly "org.lwjgl:lwjgl-stb::natives-linux"
     runtimeOnly "org.lwjgl:lwjgl-openal::natives-linux"
+    runtimeOnly "org.lwjgl:lwjgl::natives-windows"
+    runtimeOnly "org.lwjgl:lwjgl-glfw::natives-windows"
+    runtimeOnly "org.lwjgl:lwjgl-opengl::natives-windows"
+    runtimeOnly "org.lwjgl:lwjgl-stb::natives-windows"
+    runtimeOnly "org.lwjgl:lwjgl-openal::natives-windows"
+    runtimeOnly "org.lwjgl:lwjgl::natives-macos"
+    runtimeOnly "org.lwjgl:lwjgl-glfw::natives-macos"
+    runtimeOnly "org.lwjgl:lwjgl-opengl::natives-macos"
+    runtimeOnly "org.lwjgl:lwjgl-stb::natives-macos"
+    runtimeOnly "org.lwjgl:lwjgl-openal::natives-macos"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
 }
 

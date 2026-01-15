@@ -8,6 +8,11 @@ class EnemyManager(
     private var windowWidth: Int,
     private var windowHeight: Int
 ) {
+    enum class RenderState {
+        Normal,
+        Alternate
+    }
+
     enum class CollisionState {
         None,
         Enemy,
@@ -38,17 +43,34 @@ class EnemyManager(
     private var enemyTexture3: Int = 0
     private var enemyTexture4: Int = 0
     private var enemyTexture5: Int = 0
+    private var enemyTexture6: Int = 0
+    private var enemyTexture7: Int = 0
+    private var enemyTexture8: Int = 0
+    private var enemyTexture9: Int = 0
+    private var enemyTexture10: Int = 0
+    private var enemyTexture11: Int = 0
     private var ufoTexture: Int = 0
+
     private var enemySpeedUV: Float = 0.toFloat()
     private var enemySpeedMap: Map<Int, Float> = mapOf()
     private var enemyDX = 1
     private var accumulate = 0.0f
+    private var ufoTimer = 0.0f
+    private var renderState = RenderState.Normal
+    private var renderStateInterval = 1.0f
+    private var renderStateTimer = 0.0f
 
     fun rebuildEnemies() {
+        enemyCount = 0
+        accumulate = 0.0f
+        ufoTimer = 0.0f
         isInvaded = false
         loadEnemyTextures()
         enemies.clear()
         enemySpeedUV = 0.005f
+        renderState = RenderState.Normal
+        renderStateInterval = 1.0f
+        renderStateTimer = 0.0f
         enemySpeedMap = mapOf(
             18 to 0.050f,
              9 to 0.150f,
@@ -71,7 +93,7 @@ class EnemyManager(
                     enemyY,
                     index = i,
                     true,
-                    EnemyRenderer(EnemyShader(), windowWidth, windowHeight, getEnemyTexture(i))
+                    EnemyRenderer(EnemyShader(), windowWidth, windowHeight)
                 )
                 enemies.add(enemy)
                 enemyX += enemyWidth + spacer
@@ -86,7 +108,7 @@ class EnemyManager(
                 enemyY,
                 index = 6,
                 false,
-                EnemyRenderer(EnemyShader(), windowWidth, windowHeight, getEnemyTexture(6))
+                EnemyRenderer(EnemyShader(), windowWidth, windowHeight)
             )
         )
     }
@@ -100,7 +122,7 @@ class EnemyManager(
         enemyHeight = (scaleY * windowHeight * Constants.ENEMY_HEIGHT_RATIO).roundToInt()
 
         for (enemy in enemies) {
-            enemy.renderer.updateWindowSize(newWindowWidth, newWindowHeight, getEnemyTexture(enemy.index))
+            enemy.renderer.updateWindowSize(newWindowWidth, newWindowHeight)
             enemy.enemyX = (enemy.enemyX * scaleX).roundToInt()
             enemy.enemyY = (enemy.enemyY * scaleY).roundToInt()
         }
@@ -111,12 +133,12 @@ class EnemyManager(
     fun render() {
         enemies.forEach {
             if(it.isActive)
-                it.renderer.render(it.enemyX, it.enemyY)
+                it.renderer.render(it.enemyX, it.enemyY, getEnemyTexture(it.index))
         }
     }
 
-    fun update(dt: Float) {
-        if (isInvaded) return
+    fun update(dt: Float, retroSynth: RetroSynth) {
+        if (isInvaded || enemies.count() == 0) return
         val rightMax = (windowWidth - windowWidth * Constants.DIVIDE_LINE_RATIO).roundToInt()
         val leftMax = (windowWidth * Constants.DIVIDE_LINE_RATIO - enemyWidth).roundToInt()
         var changDirection = false
@@ -149,11 +171,56 @@ class EnemyManager(
         }
 
         when (enemyCount) {
-            18 -> enemySpeedUV = enemySpeedMap[enemyCount]!!
-             9 -> enemySpeedUV = enemySpeedMap[enemyCount]!!
-             4 -> enemySpeedUV = enemySpeedMap[enemyCount]!!
-             2 -> enemySpeedUV = enemySpeedMap[enemyCount]!!
-             1 -> enemySpeedUV = enemySpeedMap[enemyCount]!!
+            18 -> {
+                enemySpeedUV = enemySpeedMap[enemyCount]!!
+                renderStateInterval = 0.5f
+            }
+             9 -> {
+                 enemySpeedUV = enemySpeedMap[enemyCount]!!
+                 renderStateInterval = 0.25f
+             }
+             4 -> {
+                 enemySpeedUV = enemySpeedMap[enemyCount]!!
+                 renderStateInterval = 0.125f
+             }
+             2 -> {
+                 enemySpeedUV = enemySpeedMap[enemyCount]!!
+                 renderStateInterval = 0.06225f
+             }
+             1 -> {
+                 enemySpeedUV = enemySpeedMap[enemyCount]!!
+                 renderStateInterval = 0.031125f
+             }
+        }
+
+        // Update render state
+        renderStateTimer += dt
+        if (renderStateTimer >= renderStateInterval) {
+            renderState = if (renderState == RenderState.Normal) RenderState.Alternate else RenderState.Normal
+            renderStateTimer = 0.0f
+            retroSynth.playInvaderStep((renderStateInterval * 1000).toInt(), "drum")
+        }
+
+        // Update UFO
+        val ufo = enemies.last()
+        if (!ufo.isActive) {
+            ufoTimer += dt
+            if (ufoTimer >= Constants.UFO_SECONDS) {
+                ufo.isActive = true
+                ufo.enemyX = 0
+                ufoTimer = Constants.UFO_SOUND_INTERVAL
+            }
+        }  else {
+            ufoTimer += dt
+            ufo.enemyX += (enemySpeedMap[9]!! * windowWidth *  dt).roundToInt()
+            if (ufoTimer >= Constants.UFO_SOUND_INTERVAL) {
+                retroSynth.playUfoSound(Constants.UFO_SOUND_MILLIS)
+                ufoTimer = 0.0f
+            }
+            if (ufo.enemyX > rightMax) {
+                ufo.isActive = false
+                ufoTimer = 0.0f
+            }
         }
     }
 
@@ -180,7 +247,10 @@ class EnemyManager(
                 return if (it.index < 6) {
                     enemyCount--
                     CollisionState.Enemy
-                } else CollisionState.Ufo
+                } else {
+                    ufoTimer = 0.0f
+                    CollisionState.Ufo
+                }
             } else if (it.isActive && it.enemyY < bottomThreshold) {
                 isInvaded = true
                 deltaY = it.enemyY - bottom
@@ -202,12 +272,12 @@ class EnemyManager(
 
     private fun getEnemyTexture(enemyRow: Int): Int {
         return when(enemyRow) {
-            0 -> enemyTexture0
-            1 -> enemyTexture1
-            2 -> enemyTexture2
-            3 -> enemyTexture3
-            4 -> enemyTexture4
-            5 -> enemyTexture5
+            0 -> if(renderState == RenderState.Normal) enemyTexture0 else enemyTexture6
+            1 -> if(renderState == RenderState.Normal) enemyTexture1 else enemyTexture7
+            2 -> if(renderState == RenderState.Normal) enemyTexture2 else enemyTexture8
+            3 -> if(renderState == RenderState.Normal) enemyTexture3 else enemyTexture9
+            4 -> if(renderState == RenderState.Normal) enemyTexture4 else enemyTexture10
+            5 -> if(renderState == RenderState.Normal) enemyTexture5 else enemyTexture11
             else ->  ufoTexture
         }
     }
@@ -219,6 +289,12 @@ class EnemyManager(
         enemyTexture3 = loadTextureFromResource("/images/enemy3.png")
         enemyTexture4 = loadTextureFromResource("/images/enemy4.png")
         enemyTexture5 = loadTextureFromResource("/images/enemy5.png")
+        enemyTexture6 = loadTextureFromResource("/images/enemy6.png")
+        enemyTexture7 = loadTextureFromResource("/images/enemy7.png")
+        enemyTexture8 = loadTextureFromResource("/images/enemy8.png")
+        enemyTexture9 = loadTextureFromResource("/images/enemy9.png")
+        enemyTexture10 = loadTextureFromResource("/images/enemy10.png")
+        enemyTexture11 = loadTextureFromResource("/images/enemy11.png")
         ufoTexture = loadTextureFromResource("/images/ufo.png")
     }
 
