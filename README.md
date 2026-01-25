@@ -2,6 +2,7 @@
 ### Requirements
  - Java 17+
  - Works on Windows, Linux, and macOS
+ - Locale defaults to English; set `LOCALE` to a language tag (e.g., `es`, `fr`, `pt-BR`) to change it
  - Start the jar with: `java -jar build/libs/space_invaders-1.0.0-all.jar`
 
 ### Build
