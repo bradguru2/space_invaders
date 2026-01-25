@@ -13,7 +13,6 @@ import org.lwjgl.openal.ALC
 import org.lwjgl.openal.ALC10.*
 import org.lwjgl.openal.AL10.*
 import java.io.BufferedInputStream
-import java.nio.ByteBuffer
 import java.nio.IntBuffer
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioInputStream
@@ -21,12 +20,45 @@ import javax.sound.sampled.AudioSystem
 
 object MusicUtilities {
 
+    @JvmStatic fun initializeOpenAL() {
+        synchronized(lock) {
+            if (initialized) return
+            initialized = true
+            val defaultDeviceName = alcGetString(0, ALC_DEFAULT_DEVICE_SPECIFIER)
+            val device = alcOpenDevice(defaultDeviceName)
+
+            val deviceCaps = ALC.createCapabilities(device)
+
+            val context = alcCreateContext(device, null as IntBuffer?)
+            alcMakeContextCurrent(context)
+
+            AL.createCapabilities(deviceCaps)
+        }
+    }
+
     @Volatile
+    @JvmStatic
     private var stop = false
+
+    @Volatile
+    @JvmStatic
+    private var initialized = false
+
+    @Volatile
+    @JvmStatic
+    private var lock = Any()
 
     @JvmStatic
     fun stopPlayback() {
         stop = true
+    }
+
+    @JvmStatic fun cleanup() {
+        Thread.sleep(1000) // wait for playback to stop
+        val context = alcGetCurrentContext()
+        val device = alcGetContextsDevice(context)
+        alcDestroyContext(context)
+        alcCloseDevice(device)
     }
 
     @JvmStatic
@@ -38,12 +70,7 @@ object MusicUtilities {
 
     @JvmStatic
     private suspend fun playLoopingAudio(path: String) {
-        // Init OpenAL
-        val device = alcOpenDevice(null as ByteBuffer?)
-        val context = alcCreateContext(device, null as IntBuffer?)
-        alcMakeContextCurrent(context)
-        AL.createCapabilities(ALC.createCapabilities(device))
-
+        initializeOpenAL() // Ensure OpenAL shared context is initialized
         val src = alGenSources()
 
         fun openPcmStream(): AudioInputStream {
@@ -117,7 +144,5 @@ object MusicUtilities {
         // Cleanup
         alDeleteSources(src)
         buffers.forEach { alDeleteBuffers(it) }
-        alcDestroyContext(context)
-        alcCloseDevice(device)
     }
 }

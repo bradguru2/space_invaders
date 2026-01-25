@@ -3,6 +3,7 @@ package org.game.invaders
 import org.game.invaders.utilities.CollisionUtilities.missileHitsEnemy
 import org.game.invaders.utilities.loadTextureFromResource
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 class EnemyManager(
     private var windowWidth: Int,
@@ -33,10 +34,10 @@ class EnemyManager(
         private set
     var isInvaded = false
         private set
+
     private val enemies = mutableListOf<Enemy>()
     private var enemyWidth = (windowWidth * Constants.ENEMY_WIDTH_RATIO).roundToInt()
     private var enemyHeight = (windowHeight * Constants.ENEMY_HEIGHT_RATIO).roundToInt()
-
     private var enemyTexture0: Int = 0
     private var enemyTexture1: Int = 0
     private var enemyTexture2: Int = 0
@@ -50,7 +51,6 @@ class EnemyManager(
     private var enemyTexture10: Int = 0
     private var enemyTexture11: Int = 0
     private var ufoTexture: Int = 0
-
     private var enemySpeedUV: Float = 0.toFloat()
     private var enemySpeedMap: Map<Int, Float> = mapOf()
     private var enemyDX = 1
@@ -59,12 +59,49 @@ class EnemyManager(
     private var renderState = RenderState.Normal
     private var renderStateInterval = 1.0f
     private var renderStateTimer = 0.0f
+    private var startingPoint = -1
+    private var isPaused = false
+
+    fun getMissileStartCoordinates(): Pair<Int, Int> {
+        val enemy = getRandomActiveEnemy()
+        val missileX = enemy.enemyX + enemyWidth / 2
+        val missileY = enemy.enemyY - 3 // A bit below the enemy
+        return Pair(missileX, missileY)
+    }
+
+    fun onPlayerHit() {
+        isPaused = true
+        // Reset UFO
+        val ufo = enemies.last()
+        ufo.isActive = false
+        ufo.enemyX = 0
+        ufoTimer = 0.0f
+    }
+
+    fun onPlayerResumed() {
+        isPaused = false
+    }
+
+    fun resetStartingPoint() {
+        val margin = 3
+        startingPoint = (Constants.ENEMY_START_RATIO * windowHeight).roundToInt() + enemyHeight + margin
+    }
+
+    fun advanceStartingPoint() {
+        val bottom = (Constants.BOTTOM_FRAME_RATIO * windowHeight).roundToInt()
+        val bottomThreshold = (bottom + 2 * enemyHeight)
+        val margin = 3
+        if (startingPoint > bottomThreshold) {
+            startingPoint -= enemyHeight + margin
+        }
+    }
 
     fun rebuildEnemies() {
         enemyCount = 0
         accumulate = 0.0f
         ufoTimer = 0.0f
         isInvaded = false
+        isPaused = false
         loadEnemyTextures()
         enemies.clear()
         enemySpeedUV = 0.005f
@@ -83,7 +120,7 @@ class EnemyManager(
         val frameWidth = (windowWidth - 2 * Constants.DIVIDE_LINE_RATIO * windowWidth).roundToInt()
         val spacer = (frameWidth / (Constants.ENEMY_COLUMN_COUNT * 1.0f) - enemyWidth).roundToInt()
         val startPosition = (Constants.DIVIDE_LINE_RATIO * windowWidth - enemyWidth).roundToInt()
-        var enemyY = (Constants.ENEMY_START_RATIO * windowHeight).roundToInt()
+        var enemyY = startingPoint
         for (i in 0 ..< Constants.ENEMY_ROW_COUNT) {
             var enemyX = startPosition
 
@@ -101,12 +138,13 @@ class EnemyManager(
             }
             enemyY += enemyHeight + margin
         }
-        // Add UFO
+        // Add UFO in last row index by itself
+        enemyY = (windowHeight - windowHeight * Constants.HUD_HEIGHT_RATIO - enemyHeight - margin).roundToInt()
         enemies.add(
             Enemy(
-                ((windowWidth - enemyWidth) / 2.0f).roundToInt(),
+                0,
                 enemyY,
-                index = 6,
+                index = Constants.ENEMY_ROW_COUNT,
                 false,
                 EnemyRenderer(EnemyShader(), windowWidth, windowHeight)
             )
@@ -120,6 +158,7 @@ class EnemyManager(
 
         enemyWidth = (scaleX * windowWidth * Constants.ENEMY_WIDTH_RATIO).roundToInt()
         enemyHeight = (scaleY * windowHeight * Constants.ENEMY_HEIGHT_RATIO).roundToInt()
+        startingPoint = (scaleY * startingPoint).roundToInt()
 
         for (enemy in enemies) {
             enemy.renderer.updateWindowSize(newWindowWidth, newWindowHeight)
@@ -138,7 +177,7 @@ class EnemyManager(
     }
 
     fun update(dt: Float, retroSynth: RetroSynth) {
-        if (isInvaded || enemies.count() == 0) return
+        if (isInvaded || enemies.count() == 0 || isPaused) return
         val rightMax = (windowWidth - windowWidth * Constants.DIVIDE_LINE_RATIO).roundToInt()
         val leftMax = (windowWidth * Constants.DIVIDE_LINE_RATIO - enemyWidth).roundToInt()
         var changDirection = false
@@ -153,7 +192,7 @@ class EnemyManager(
             accumulate = 0.0f
         }
         for (enemy in enemies) {
-            if (enemy.index > 5 || deltaX == 0 || !enemy.isActive) continue
+            if (enemy.index == Constants.ENEMY_ROW_COUNT || deltaX == 0 || !enemy.isActive) continue
             if (enemy.enemyX + deltaX in leftMax..rightMax) {
                 enemy.enemyX += deltaX
             } else {
@@ -164,7 +203,7 @@ class EnemyManager(
             val margin = 3
             enemyDX = -enemyDX
             enemies.forEach { enemy ->
-                if (enemy.index < 6) {
+                if (enemy.index < Constants.ENEMY_ROW_COUNT) {
                     enemy.enemyY -= enemyHeight + margin
                 }
             }
@@ -244,7 +283,7 @@ class EnemyManager(
             ) {
                 it.isActive = false
                 // Can Collide only with one enemy per check
-                return if (it.index < 6) {
+                return if (it.index < Constants.ENEMY_ROW_COUNT) {
                     enemyCount--
                     CollisionState.Enemy
                 } else {
@@ -258,7 +297,7 @@ class EnemyManager(
         }
         return if (isInvaded) {
             enemies.forEach {
-                if (it.index < 6) it.enemyY -= deltaY
+                if (it.index < Constants.ENEMY_ROW_COUNT) it.enemyY -= deltaY
             }
             CollisionState.Invaded
         } else {
@@ -298,19 +337,26 @@ class EnemyManager(
         ufoTexture = loadTextureFromResource("/images/ufo.png")
     }
 
-    private fun getMinMaxActiveColumns(): Pair<Int, Int> {
-        var maxCol = 0
-        var minCol = Constants.ENEMY_COLUMN_COUNT - 1
+    // Note: the bottom row is index 0
+    private fun getRandomActiveEnemy(): Enemy {
+        val candidates = mutableListOf<Enemy>()
+        val visitedCol = mutableSetOf<Int>()
+
         for (i in 0 ..< Constants.ENEMY_ROW_COUNT) {
+            // Check for candidates in this row
             (0 ..< Constants.ENEMY_COLUMN_COUNT).forEach { j ->
                 val enemy = enemies[i * Constants.ENEMY_COLUMN_COUNT + j]
-                if (enemy.isActive && j > maxCol) {
-                    maxCol = j
-                } else if (enemy.isActive && j < minCol) {
-                    minCol = j
+                if (enemy.isActive && !visitedCol.contains(j)) {
+                    visitedCol.add(j)
+                    candidates.add(enemy)
                 }
             }
         }
-        return Pair(minCol, maxCol)
+
+        if (candidates.isNotEmpty()) {
+            return candidates[Random.nextInt(candidates.size)]
+        }
+
+        throw IllegalStateException("No active enemies found when checking all enemy rows")
     }
 }

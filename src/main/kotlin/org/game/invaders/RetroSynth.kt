@@ -1,5 +1,6 @@
 package org.game.invaders
 
+import org.game.invaders.utilities.MusicUtilities
 import org.lwjgl.BufferUtils
 import org.lwjgl.openal.AL
 import org.lwjgl.openal.AL10
@@ -8,27 +9,18 @@ import org.lwjgl.openal.ALC10
 import java.nio.IntBuffer
 
 import java.nio.ShortBuffer
+import kotlin.math.exp
 import kotlin.math.sin
+import kotlin.random.Random
 
 class RetroSynth(
     sourceCount: Int = 16   // Number of simultaneous sounds allowed
 ) {
-    private var device: Long = 0L
-    private var context: Long = 0L
-
     private val sources = IntArray(sourceCount)
     private val buffersInUse = mutableListOf<Int>()
 
     init {
-        val defaultDeviceName = ALC10.alcGetString(0, ALC10.ALC_DEFAULT_DEVICE_SPECIFIER)
-        device = ALC10.alcOpenDevice(defaultDeviceName)
-
-        val deviceCaps = ALC.createCapabilities(device)
-
-        context = ALC10.alcCreateContext(device, null as IntBuffer?)
-        ALC10.alcMakeContextCurrent(context)
-
-        AL.createCapabilities(deviceCaps)
+        MusicUtilities.initializeOpenAL() // Ensure OpenAL shared context is initialized
 
         // Create a pool of reusable sources
         for (i in 0 until sourceCount) {
@@ -49,9 +41,6 @@ class RetroSynth(
         for (s in sources) {
             AL10.alDeleteSources(s)
         }
-
-        ALC10.alcDestroyContext(context)
-        ALC10.alcCloseDevice(device)
     }
 
     // ------------------------------
@@ -217,11 +206,11 @@ class RetroSynth(
                 for (i in 0 until samples) {
                     val t = i / sampleRate.toFloat()
                     // Exponential decay envelope
-                    val env = Math.exp((-6 * t).toDouble()).toFloat()
+                    val env = exp((-6 * t).toDouble()).toFloat()
                     // Sine wave for kick
-                    val sine = (Math.sin(2 * Math.PI * freq * t) * 12000 * env).toInt()
+                    val sine = (sin(2 * Math.PI * freq * t) * 12000 * env).toInt()
                     // Add a bit of noise for snare effect
-                    val noise = ((Math.random() * 2 - 1) * 3000 * env).toInt()
+                    val noise = ((Random.nextDouble() * 2 - 1) * 3000 * env).toInt()
                     data.put((sine + noise).toShort())
                 }
             }

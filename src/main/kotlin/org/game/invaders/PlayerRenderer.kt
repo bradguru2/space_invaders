@@ -8,6 +8,7 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
     private data class Quad(val vao: Int, val vbo: Int, var vertexCount: Int)
     private lateinit var player: Quad
     private var normalTexture: Int
+    private var hitTexture: Int
 
     var playerHeight = windowHeight * Constants.PLAYER_HEIGHT_RATIO
         private set
@@ -19,6 +20,7 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
     init {
         buildGeometry() // Initial paddle position at roughly center
         normalTexture = loadTextureFromResource("/images/player.png")
+        hitTexture = loadTextureFromResource("/images/player_exploded.png")
     }
 
     fun cleanup() {
@@ -46,9 +48,10 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
         playerWidth = windowWidth * s
         buildGeometry()
         normalTexture = loadTextureFromResource("/images/player.png")
+        hitTexture = loadTextureFromResource("/images/player_exploded.png")
     }
 
-    fun render(playerX: Int) {
+    fun render(playerX: Int, isHit: Boolean = false) {
         shader.use()
         // Projection for Window Coordinates
         val proj =
@@ -64,7 +67,7 @@ class PlayerRenderer(private val shader: PlayerShader, private var windowWidth: 
         // Draw player
         GL30.glBindVertexArray(player.vao)
         GL30.glActiveTexture(GL30.GL_TEXTURE0)
-        GL30.glBindTexture(GL30.GL_TEXTURE_2D, normalTexture)
+        GL30.glBindTexture(GL30.GL_TEXTURE_2D, if (!isHit) normalTexture else hitTexture)
         GL30.glDrawArrays(GL30.GL_TRIANGLES, 0, 6)
 
         GL30.glBindVertexArray(0)

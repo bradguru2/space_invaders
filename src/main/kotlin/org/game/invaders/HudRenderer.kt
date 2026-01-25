@@ -30,7 +30,7 @@ class HudRenderer(
     }
 
     // Caller sends unlocalized text and it starts at bottom of window
-    fun renderStatus(text: String) {
+    fun renderStatus(buttonText: String, statusText: String) {
         val hudHeight = (windowHeight * Constants.HUD_HEIGHT_RATIO).toInt()
         val hudY = 0
         val localLocale =
@@ -53,7 +53,8 @@ class HudRenderer(
         // set text color (using HudRegion defaults)
         shader.setUniformVec3("textColor", Constants.TEXT_COLOR_R, Constants.TEXT_COLOR_G, Constants.TEXT_COLOR_B)
 
-        //val translatedText = resourceBundle.getString("foo")
+        val translatedText = resourceBundle.getString("start_game")
+        val text = "$buttonText $translatedText"
         val startX = (windowWidth - font.getTextWidth(text)) / 2.0f
 
         // Vertical align inside HUD (centered)

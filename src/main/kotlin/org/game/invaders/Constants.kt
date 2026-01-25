@@ -29,12 +29,12 @@ object Constants {
     const val MISSILE_COLOR_G: Float = 0.2f
     const val MISSILE_COLOR_B: Float = 0.2f
 
-    // Paddle Size Ratios
+    // Player Size Ratios
     const val NORMAL_PLAYER_RATIO: Float = 0.15f   // 15% of window width
     const val SMALL_PLAYER_RATIO: Float = 0.075f    // 7.5% of window width
     const val PLAYER_HEIGHT_RATIO = 0.07f     // 2% of window height
 
-    // Frame Size Rations
+    // Frame Size Ratios
     const val TOP_FRAME_RATIO = 0.030f // 3.0 % of window height
     const val SIDE_FRAME_RATIO = 0.05f // 5 % of window width
     const val BOTTOM_FRAME_RATIO = 0.10f // 10 % of window height
@@ -56,6 +56,9 @@ object Constants {
     const val UFO_SECONDS = 20.0f
     const val UFO_SOUND_INTERVAL = 1.0f
     const val UFO_SOUND_MILLIS = (UFO_SOUND_INTERVAL * 1000).toInt()
+
+    // Player constants
+    const val PLAYER_HIT_INTERVAL = 1.0f // seconds to show hit state
 
     // Shader Resource Paths
     const val HUD_VERTEX_SHADER_PATH = "/shaders/hud_vertex.glsl"

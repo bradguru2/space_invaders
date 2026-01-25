@@ -5,6 +5,7 @@ import org.lwjgl.glfw.GLFWVidMode
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.MemoryUtil
+import org.lwjgl.system.Platform
 
 
 class Game {
@@ -30,6 +31,13 @@ class Game {
         val vid: GLFWVidMode? = glfwGetVideoMode(monitor)
         var localWidth = width
         var localHeight = height
+
+        if (Platform.get() == Platform.MACOSX) {
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
+            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE)
+        }
 
         if (fullscreen) {
             localWidth = vid!!.width()
@@ -61,7 +69,7 @@ class Game {
         glfwShowWindow(window)
         GL.createCapabilities()
 
-        // Set ESC to close window
+        // Set ESC to close window and ALT+ENTER to toggle fullscreen
         glfwSetKeyCallback(window) { _, key, _, action, mods ->
             if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
                 glfwSetWindowShouldClose(window, true)
