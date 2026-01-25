@@ -1,11 +1,11 @@
 package org.game.invaders
 
-/** TODO need shared ALC DC import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
-import org.game.invaders.utilities.MusicUtilities **/
 import org.game.invaders.utilities.CollisionUtilities.missileHitsPlayer
+import org.game.invaders.utilities.MusicUtilities
 import org.lwjgl.glfw.GLFW.GLFW_KEY_A
 import org.lwjgl.glfw.GLFW.GLFW_KEY_D
 import org.lwjgl.glfw.GLFW.GLFW_KEY_F2
@@ -25,6 +25,7 @@ class GameController(window: Long, width:Int, height:Int) {
 
     private var playerRenderer = PlayerRenderer(PlayerShader(), width, height)
     private val missileRenderer = MissileRenderer(MissilelShader(), width, height)
+    private val enemyMissileRenderer = MissileRenderer(MissilelShader(), width, height)
     private val retroSynth = RetroSynth()
     private var hudRenderer = HudRenderer(RetroFont(), HudShader(), width, height)
     private var frameRenderer = FrameRenderer(FrameShader(), width, height)
@@ -43,19 +44,28 @@ class GameController(window: Long, width:Int, height:Int) {
     private var divideLineWidth = (windowWidth * Constants.DIVIDE_LINE_RATIO).roundToInt()
     private var missileX = 0
     private var missileY = -500
+    private var enemyMissileX = 0
+    private var enemyMissileY = -500
     private var lastTime = System.currentTimeMillis()
     private var deltaTime = 0f
     private var playerSpeedUV = 0.25f  // percentage converts to UV
     private var isMissileFired = true
     private var missileDX = 0f
     private var missileDY = 0f
+    private var enemyMissileDX = 0f
+    private var enemyMissileDY = 0f
     private var missileSpeedUV = 0.5f
     private var isMoveLeft: Boolean = false
     private var isMoveRight: Boolean = false
     private var isSpaceKey: Boolean = false
+    private var playerHitTimer: Float = -5f
 
     fun execute() {
-        // TODO need shared ALC DC val job = MusicUtilities.playAsync (CoroutineScope(Dispatchers.IO),"/some.mp3")
+        val job = MusicUtilities.playAsync (
+            CoroutineScope(Dispatchers.IO),
+            "/adventure_by_nick_panek.mp3"
+        )
+
         while (!glfwWindowShouldClose(gameWindow)) {
             deltaTime = computeDeltaTime()
             if (isLevelEvent) {
@@ -71,8 +81,8 @@ class GameController(window: Long, width:Int, height:Int) {
             glfwPollEvents()
         }
         cleanup()
-        // TODO need shared ALC DC MusicUtilities.stopPlayback()
-        // TODO need shared ALC DC runBlocking { job.cancelAndJoin() } // Wait for cleanup
+
+        runBlocking { job.cancelAndJoin() } // Wait for cleanup
     }
 
     fun onResizeWindow(newWindow: Long,newWidth: Int, newHeight: Int) {
@@ -89,10 +99,15 @@ class GameController(window: Long, width:Int, height:Int) {
         enemyManager.onWindowResize(newWidth, newHeight)
 
         missileRenderer.updateWindowSize(windowWidth, windowHeight)
+        enemyMissileRenderer.updateWindowSize(windowWidth, windowHeight)
         missileX = (missileX * scaleX).roundToInt()
         missileY = (missileY * scaleY).roundToInt()
         missileDX *= scaleX
         missileDY *= scaleY
+        enemyMissileX = (enemyMissileX * scaleX).roundToInt()
+        enemyMissileY = (enemyMissileY * scaleY).roundToInt()
+        enemyMissileDX *= scaleX
+        enemyMissileDY *= scaleY
 
         playerX = (playerX * scaleX).roundToInt()
         hudRenderer.updateWindowSize(windowWidth, windowHeight)
@@ -103,6 +118,7 @@ class GameController(window: Long, width:Int, height:Int) {
     private fun initLevel() {
         // Create enemies, set positions, assign shaders
         playerX = divideLineWidth
+        enemyManager.advanceStartingPoint()
         enemyManager.rebuildEnemies()
     }
 
@@ -114,6 +130,22 @@ class GameController(window: Long, width:Int, height:Int) {
     }
 
     private fun pollInput() {
+        if (gameOver && glfwGetKey(gameWindow, GLFW_KEY_F2) == GLFW_PRESS) {
+            gameOver = false
+            isLevelEvent = true
+            enemyManager.resetStartingPoint()
+            level = 0
+            score = 0
+            ships = 3
+            missileDY = 0f
+            missileY = -500
+            enemyMissileY = -500
+            enemyMissileDY = 0f
+            isMissileFired = false
+        }
+
+        if (gameOver) return
+
         // left movement
         if (glfwGetKey(gameWindow, GLFW_KEY_LEFT) == GLFW_PRESS
             || glfwGetKey(gameWindow, GLFW_KEY_A) == GLFW_PRESS) {
@@ -130,16 +162,18 @@ class GameController(window: Long, width:Int, height:Int) {
             isSpaceKey = true
         }
 
-        if (gameOver && glfwGetKey(gameWindow, GLFW_KEY_F2) == GLFW_PRESS) {
-            gameOver = false
-            isLevelEvent = true
-            level = 0
-            score = 0
-            ships = 3
-        }
+
     }
 
     private fun update() {
+
+        // No updates while player hit timer is active
+        if (playerHitTimer >= 0f) {
+            playerHitTimer -= deltaTime
+            return
+        } else {
+            enemyManager.onPlayerResumed()
+        }
 
         // Exit here if game over
         if (gameOver || isLevelEvent) return
@@ -173,6 +207,16 @@ class GameController(window: Long, width:Int, height:Int) {
             isSpaceKey = false
         }
 
+        if (enemyMissileY > Constants.BOTTOM_FRAME_RATIO * windowHeight) {
+            enemyMissileX += (enemyMissileDX * deltaTime).roundToInt()
+            enemyMissileY -= (enemyMissileDY * deltaTime).roundToInt()
+        } else {
+            val xy = enemyManager.getMissileStartCoordinates()
+            enemyMissileX = xy.first
+            enemyMissileY = xy.second
+            enemyMissileDX = 0f
+            enemyMissileDY = (missileSpeedUV * windowHeight) / 2
+        }
         enemyManager.update(deltaTime, retroSynth)
     }
 
@@ -182,6 +226,8 @@ class GameController(window: Long, width:Int, height:Int) {
         val mw = missileRenderer.missileWidth.toFloat()
         val mh = missileRenderer.missileHeight.toFloat()
         val mx = missileX.toFloat()
+        val mey = enemyMissileY.toFloat()
+        val mex = enemyMissileX.toFloat()
 
         val collisionState = enemyManager.hasCollision(
             mx.roundToInt(),
@@ -201,12 +247,15 @@ class GameController(window: Long, width:Int, height:Int) {
             }
         } else if (collisionState == EnemyManager.CollisionState.Invaded) {
             gameOver = true
+            missileDY = 0f
+            missileY = -500
+            isMissileFired = false
             retroSynth.playInvaderStep(2000)
         }
 
         if (missileHitsPlayer(
-            mx,
-            my,
+            mex,
+            mey,
             mw,
             mw,
             playerX.toFloat(),
@@ -217,17 +266,24 @@ class GameController(window: Long, width:Int, height:Int) {
             missileDY = 0f
             missileY = -500
             isMissileFired = false
+            enemyMissileDY = 0f
+            enemyMissileY = -500
+            enemyManager.onPlayerHit()
+            playerHitTimer = Constants.PLAYER_HIT_INTERVAL
             ships--
             gameOver = ships <= 0
-            retroSynth.playNoiseBurst(durationMs = 300)
-        } else if (my <= (windowHeight * Constants.BOTTOM_FRAME_RATIO)
-            || my >= (frameRenderer.startTopY - missileRenderer.missileHeight)) {
+            retroSynth.playInvaderStep(durationMs = 300)
+        } else if (my >= (frameRenderer.startTopY - missileRenderer.missileHeight)) {
             missileDY = 0f
             missileY = -500
             isMissileFired = false
         }
+
         if (enemyManager.enemyCount <= 0) {
             isLevelEvent = true
+            missileDY = 0f
+            missileY = -500
+            isMissileFired = false
         }
     }
 
@@ -242,20 +298,27 @@ class GameController(window: Long, width:Int, height:Int) {
 
     private fun render() {
         glClear(GL_COLOR_BUFFER_BIT)
-        if (!enemyManager.isInvaded) {
+        if (!enemyManager.isInvaded && playerHitTimer < 0f) {
             playerRenderer.render(playerX)
             missileRenderer.render(missileX.toFloat(), missileY.toFloat())
+            enemyMissileRenderer.render(enemyMissileX.toFloat(), enemyMissileY.toFloat())
+        } else if (playerHitTimer >= 0f) {
+            // Render player as hit
+            playerRenderer.render(playerX, isHit = true)
         }
         enemyManager.render()
         hudRenderer.render(score, ships)
         frameRenderer.render()
-        if (gameOver) hudRenderer.renderStatus("F2 to Start")
+        if (gameOver) hudRenderer.renderStatus("F2", "Start Game")
     }
 
     private fun cleanup() {
+        MusicUtilities.stopPlayback()
+        MusicUtilities.cleanup()
         retroSynth.cleanup()
         playerRenderer.cleanup()
         missileRenderer.cleanup()
+        enemyMissileRenderer.cleanup()
         enemyManager.cleanUp()
         hudRenderer.cleanup()
         frameRenderer.cleanup()
