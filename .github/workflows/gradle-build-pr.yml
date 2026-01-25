@@ -1,0 +1,28 @@
+name: Gradle Build on PR
+
+on:
+  pull_request:
+    branches:
+      - main # Specify the target branch(es) for the PRs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # The runner environment (ubuntu-latest, windows-latest, etc.)
+
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4 # Action to check out your code
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4 # Action to set up the Java environment
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Gradle
+      # Recommended action for caching and environment setup
+      uses: gradle/actions/setup-gradle@v5
+
+    - name: Build with Gradle
+      run: ./gradlew clean build # Command to run your Gradle build
+      # Make sure your gradlew script is executable (git update-index --chmod=+x gradlew)
