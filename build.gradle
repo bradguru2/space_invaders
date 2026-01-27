@@ -5,14 +5,14 @@ plugins {
 }
 
 group = 'org.game'
-version = '1.1.0'
+version = '1.2.0'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation platform("org.lwjgl:lwjgl-bom:3.3.6")
+    implementation platform("org.lwjgl:lwjgl-bom:3.4.0")
 
     implementation "org.lwjgl:lwjgl"
     implementation "org.lwjgl:lwjgl-glfw"
