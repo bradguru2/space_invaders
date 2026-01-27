@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.game'
-version = '1.0.4'
+version = '1.0.5'
 
 repositories {
     mavenCentral()
@@ -18,7 +18,7 @@ dependencies {
     implementation "org.lwjgl:lwjgl-glfw"
     implementation "org.lwjgl:lwjgl-opengl"
     implementation "org.lwjgl:lwjgl-stb"
-    implementation 'org.joml:joml:1.10.6'
+    implementation 'org.joml:joml:1.10.8'
     implementation "org.lwjgl.lwjgl:lwjgl_util:2.9.3"
     implementation "org.lwjgl:lwjgl-openal"
 
