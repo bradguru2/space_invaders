@@ -21,7 +21,7 @@ jobs:
 
     - name: Setup Gradle
       # Recommended action for caching and environment setup
-      uses: gradle/actions/setup-gradle@v5
+      uses: gradle/actions/setup-gradle@v6
 
     - name: Build with Gradle
       run: ./gradlew clean build # Command to run your Gradle build
