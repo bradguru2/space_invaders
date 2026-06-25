@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Space Invaders - How to Start</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #080b12; color: #f2f5ff; }
+    body { max-width: 760px; margin: auto; padding: 32px 20px 64px; line-height: 1.55; }
+    h1, h2 { color: #7dff9b; }
+    h1 { margin-bottom: 0; }
+    .subtitle { margin-top: 4px; color: #b7c0d8; }
+    .card { margin: 20px 0; padding: 18px 20px; border: 1px solid #2b3652; border-radius: 10px; background: #111725; }
+    code { padding: 2px 6px; border-radius: 4px; background: #202a40; color: #fff; }
+    pre { overflow-x: auto; padding: 12px; border-radius: 6px; background: #080b12; }
+    pre code { padding: 0; background: transparent; }
+    li + li { margin-top: 7px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Space Invaders</h1>
+    <p class="subtitle">Quick start guide for Windows, Linux, and macOS</p>
+  </header>
+
+  <section class="card">
+    <h2>Before you start</h2>
+    <p>This game requires <strong>Java 17 or newer</strong>.</p>
+    <p>Open a terminal or Command Prompt and check with:</p>
+    <pre><code>java -version</code></pre>
+    <p>If Java is missing or older than version 17, install Java 17 or newer and try again.</p>
+  </section>
+
+  <section class="card">
+    <h2>Windows</h2>
+    <ol>
+      <li>Open the extracted game folder.</li>
+      <li>Open the <code>bin</code> folder.</li>
+      <li>Double-click <code>space_invaders.bat</code>.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Linux</h2>
+    <p>Open a terminal in the extracted game folder and run:</p>
+    <pre><code>./bin/space_invaders</code></pre>
+    <p>If you see “Permission denied,” run:</p>
+    <pre><code>chmod +x bin/space_invaders
+./bin/space_invaders</code></pre>
+  </section>
+
+  <section class="card">
+    <h2>macOS</h2>
+    <ol>
+      <li>Open Terminal.</li>
+      <li>Type <code>cd </code>, including the space.</li>
+      <li>Drag the extracted game folder into Terminal and press Return.</li>
+      <li>Run <code>./bin/space_invaders</code>.</li>
+    </ol>
+    <p>If you see “Permission denied,” first run <code>chmod +x bin/space_invaders</code>.</p>
+  </section>
+
+  <section class="card">
+    <h2>Controls</h2>
+    <ul>
+      <li><strong>F2:</strong> Start the game</li>
+      <li><strong>Left/Right arrow:</strong> Move the ship</li>
+      <li><strong>Spacebar:</strong> Fire</li>
+      <li><strong>Alt + Enter:</strong> Toggle fullscreen</li>
+      <li><strong>Escape:</strong> Exit</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Troubleshooting</h2>
+    <ul>
+      <li>Extract the ZIP before running the game.</li>
+      <li>Keep the <code>bin</code> and <code>lib</code> folders together.</li>
+      <li>Confirm that <code>java -version</code> reports version 17 or newer.</li>
+    </ul>
+  </section>
+</body>
+</html>

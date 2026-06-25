@@ -25,6 +25,7 @@ Build the same distribution ZIP used by GitHub releases:
 ```
 
 The archive is written to `build/distributions/`.
+It includes `README.html`, a browser-friendly launch guide for non-developers.
 
 ### Creating a release
 
