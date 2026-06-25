@@ -1,12 +1,44 @@
-## Space Invaders Clone - Project Readme
-### Requirements
- - Java 17+
- - Works on Windows, Linux, and macOS
- - Locale defaults to English; set `LOCALE` to a language tag (e.g., `es`, `fr`, `pt-BR`) to change it
- - Start the jar with: `java -jar build/libs/space_invaders-1.2.2-all.jar`
+## Space Invaders Clone
 
-### Build
- - `./gradlew shadowJar`
+### Download and run
+
+Java 17 or newer is required. The release distribution includes the application,
+its dependencies, native libraries for Windows, Linux, and macOS, and launcher
+scripts for each platform.
+
+1. Download `space_invaders-shadow-<version>.zip` from the
+   [latest release](https://github.com/bradguru2/space_invaders/releases/latest).
+2. Extract the ZIP.
+3. Start the game:
+   - Windows: `bin\space_invaders.bat`
+   - Linux and macOS: `bin/space_invaders`
+
+The locale defaults to English. Set `LOCALE` environment variable to a language tag such as `es`,
+`fr`, or `pt-BR` before starting the game to use another available translation.
+
+### Build from source
+
+Build the same distribution ZIP used by GitHub releases:
+
+```shell
+./gradlew clean shadowDistZip
+```
+
+The archive is written to `build/distributions/`.
+
+### Creating a release
+
+Releases are created automatically when a version tag is pushed. The tag
+determines the version embedded in the distribution.
+
+```shell
+git tag -a v1.4.0 -m "Release v1.4.0"
+git push origin v1.4.0
+```
+
+Tags must use a version such as `v1.4.0` or `v1.4.0-rc.1`. The release workflow
+builds the cross-platform distribution, creates a SHA-256 checksum, and attaches
+both files to a GitHub release.
 
 ### How to Play
  - Press F2 to start the game.

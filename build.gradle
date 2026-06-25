@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.game'
-version = '1.3.0'
+version = providers.gradleProperty('releaseVersion').getOrElse('1.3.0')
 
 repositories {
     mavenCentral()
@@ -53,10 +53,7 @@ kotlin {
 }
 
 application {
-    mainClass = 'org.game.invaders.GameKt' // adjust to your main
-    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
-        applicationDefaultJvmArgs = ["-XstartOnFirstThread"]
-    }
+    mainClass = 'org.game.invaders.GameKt'
 }
 
 jar {
@@ -69,4 +66,20 @@ jar {
 
 tasks.shadowJar {
     manifest { attributes["Main-Class"] = application.mainClass.get() }
+}
+
+tasks.withType(CreateStartScripts).configureEach {
+    doLast {
+        def marker = 'DEFAULT_JVM_OPTS=""'
+        def macAwareJvmOptions = '''if "$darwin"; then
+    DEFAULT_JVM_OPTS='"-XstartOnFirstThread"'
+else
+    DEFAULT_JVM_OPTS=""
+fi'''
+        def script = unixScript.text
+        if (!script.contains(marker)) {
+            throw new GradleException("Could not add the macOS JVM option to ${unixScript}")
+        }
+        unixScript.text = script.replace(marker, macAwareJvmOptions)
+    }
 }
