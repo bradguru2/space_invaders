@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '2.4.10'
+    id 'org.jetbrains.kotlin.jvm' version '2.4.20'
     id 'application'
     id("com.gradleup.shadow") version "9.6.1"
 }
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation platform("org.lwjgl:lwjgl-bom:3.4.2")
+    implementation platform("org.lwjgl:lwjgl-bom:3.4.3")
 
     implementation "org.lwjgl:lwjgl"
     implementation "org.lwjgl:lwjgl-glfw"
