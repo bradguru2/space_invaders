@@ -17,7 +17,7 @@ jobs:
       uses: actions/setup-java@v6 # Action to set up the Java environment
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '17.0.20+101'
 
     - name: Setup Gradle
       # Recommended action for caching and environment setup
